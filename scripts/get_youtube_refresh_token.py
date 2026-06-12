@@ -14,16 +14,20 @@ IMPORTANT: Inainte de a rula, in Google Cloud Console -> APIs & Services
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-from src.config import env
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
 
 def main() -> None:
-    client_id = env("YOUTUBE_CLIENT_ID")
-    client_secret = env("YOUTUBE_CLIENT_SECRET")
+    client_id = os.environ.get("YOUTUBE_CLIENT_ID")
+    client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
 
     if not client_id or not client_secret:
         raise RuntimeError("YOUTUBE_CLIENT_ID / YOUTUBE_CLIENT_SECRET nu sunt setate in .env")
