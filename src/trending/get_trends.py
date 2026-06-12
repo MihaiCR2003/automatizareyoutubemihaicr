@@ -8,7 +8,7 @@ import requests
 
 from src.config import CONFIG
 
-RSS_URL = "https://trends.google.com/trends/trendingsearches/daily/rss"
+RSS_URL = "https://trends.google.com/trending/rss"
 
 FALLBACK_TOPICS = [
     "Curiozitati despre spatiu",
@@ -19,7 +19,7 @@ FALLBACK_TOPICS = [
 ]
 
 
-NEWS_ITEM_NS = "https://trends.google.com/trends/trendingsearches/daily"
+NEWS_ITEM_NS = "https://trends.google.com/trending/rss"
 
 
 def get_trending_topics() -> list[str]:
@@ -53,13 +53,15 @@ def get_trending_topics_with_context() -> list[dict]:
             if not title:
                 continue
 
-            snippets = [
-                snippet.text.strip()
-                for snippet in item.iter(f"{{{NEWS_ITEM_NS}}}news_item_snippet")
-                if snippet.text
-            ]
+            details = []
+            for news_item in item.iter(f"{{{NEWS_ITEM_NS}}}news_item"):
+                snippet = news_item.findtext(f"{{{NEWS_ITEM_NS}}}news_item_snippet")
+                news_title = news_item.findtext(f"{{{NEWS_ITEM_NS}}}news_item_title")
+                text = (snippet or news_title or "").strip()
+                if text:
+                    details.append(text)
 
-            results.append({"topic": title, "context": " ".join(snippets[:3])})
+            results.append({"topic": title, "context": " ".join(details[:3])})
 
             if len(results) >= count:
                 break
