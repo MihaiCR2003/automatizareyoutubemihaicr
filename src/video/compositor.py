@@ -5,6 +5,9 @@ from __future__ import annotations
 import random
 from pathlib import Path
 
+import numpy as np
+from PIL import Image
+
 from moviepy.editor import (
     AudioFileClip,
     CompositeAudioClip,
@@ -19,8 +22,29 @@ from moviepy.editor import (
 from src.config import CONFIG, path_from_root
 
 
+def _apply_zoom(clip, duration: float, width: int, height: int, zoom_in: bool):
+    """Aplica un efect lent de zoom in/out (Ken Burns) pe un clip de dimensiune width x height."""
+    max_zoom = 1.12
+
+    def transform(get_frame, t):
+        progress = t / duration if duration > 0 else 0
+        zoom = (1 + (max_zoom - 1) * progress) if zoom_in else (max_zoom - (max_zoom - 1) * progress)
+
+        frame = get_frame(t)
+        img = Image.fromarray(frame)
+        new_w, new_h = max(int(width * zoom), width), max(int(height * zoom), height)
+        img = img.resize((new_w, new_h), Image.LANCZOS)
+
+        left = (new_w - width) // 2
+        top = (new_h - height) // 2
+        img = img.crop((left, top, left + width, top + height))
+        return np.array(img)
+
+    return clip.fl(transform)
+
+
 def _load_background(duration: float):
-    """Incarca fundalul (video sau imagine), redimensionat la 1080x1920."""
+    """Incarca fundalul (video sau imagine), redimensionat la 1080x1920, cu efect de zoom."""
     width = CONFIG["video"]["width"]
     height = CONFIG["video"]["height"]
     bg_dir = path_from_root(CONFIG["background"]["assets_dir"])
@@ -41,6 +65,9 @@ def _load_background(duration: float):
     clip = clip.crop(
         x_center=clip.w / 2, y_center=clip.h / 2, width=width, height=height
     )
+
+    zoom_in = random.choice([True, False])
+    clip = _apply_zoom(clip, duration, width, height, zoom_in)
     return clip
 
 

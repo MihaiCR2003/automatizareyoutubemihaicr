@@ -2,11 +2,28 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
 from src.config import CONFIG, path_from_root
+
+_EMOJI_PATTERN = re.compile(
+    "["
+    "\U0001F300-\U0001FAFF"
+    "\U00002600-\U000027BF"
+    "\U0001F1E6-\U0001F1FF"
+    "\U00002190-\U000021FF"
+    "\U00002B00-\U00002BFF"
+    "\U0000FE00-\U0000FE0F"
+    "]+",
+    flags=re.UNICODE,
+)
+
+
+def _strip_emojis(text: str) -> str:
+    return _EMOJI_PATTERN.sub("", text).strip()
 
 
 def generate_thumbnail(title: str, output_path: Path, character_image: str | None = None) -> Path:
@@ -49,7 +66,7 @@ def generate_thumbnail(title: str, output_path: Path, character_image: str | Non
     if font is None:
         font = ImageFont.load_default()
 
-    _draw_wrapped_text(draw, title, font, width, padding=60, fill=(255, 255, 255, 255))
+    _draw_wrapped_text(draw, _strip_emojis(title), font, width, padding=60, fill=(255, 255, 255, 255))
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     canvas.convert("RGB").save(output_path)

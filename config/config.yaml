@@ -28,7 +28,7 @@ character:
     - name: "laughing"
       file: "laughing.png"
   # Pozitie si scalare implicita pe canvas (procent din latime/inaltime)
-  default_scale: 1.0
+  default_scale: 1.35
   default_position: ["center", "bottom"]
 
 background:
@@ -53,8 +53,8 @@ tts:
   provider: "edge_tts"
   language: "ro"
   voice: "ro-RO-EmilNeural"
-  rate: "-8%"
-  pitch: "-2Hz"
+  rate: "+2%"
+  pitch: "+5Hz"
 
 script_generation:
   provider: "gemini"
