@@ -28,7 +28,7 @@ character:
     - name: "laughing"
       file: "laughing.png"
   # Pozitie si scalare implicita pe canvas (procent din latime/inaltime)
-  default_scale: 0.6
+  default_scale: 0.9
   default_position: ["center", "bottom"]
 
 background:
