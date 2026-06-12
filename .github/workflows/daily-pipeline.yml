@@ -32,12 +32,10 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
-      - name: Restore secrets and credentials
+      - name: Restore Firebase credentials (optional)
         run: |
           mkdir -p config
-          echo "${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}" > config/client_secret.json
-          echo "${{ secrets.YOUTUBE_TOKEN_JSON }}" > config/token.json
-          echo "${{ secrets.FIREBASE_CREDENTIALS_JSON }}" > config/firebase_credentials.json
+          echo '${{ secrets.FIREBASE_CREDENTIALS_JSON }}' > config/firebase_credentials.json
 
       - name: Run pipeline
         env:
@@ -47,6 +45,9 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           PIPELINE_TOPIC: ${{ github.event.inputs.topic }}
         run: |
           python -c "

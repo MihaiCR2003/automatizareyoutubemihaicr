@@ -48,16 +48,19 @@ YouTube Shorts (1080x1920), cu voice-over natural în română, personaj PNG, fu
 | ElevenLabs | `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` | Cont gratuit pe elevenlabs.io, alege/clonează o voce română |
 | Hugging Face | `HUGGINGFACE_API_TOKEN` | Token gratuit din Settings → Access Tokens pe huggingface.co |
 | Telegram | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Creează bot cu @BotFather, ia chat_id cu @userinfobot |
-| YouTube | `client_secret.json` în `config/` | Google Cloud Console → activează YouTube Data API v3 → creează credențiale OAuth (Desktop app) |
-| Firebase | `firebase_credentials.json`, `FIREBASE_DB_URL` | Firebase Console → Project Settings → Service Accounts → Generate key + Realtime Database URL |
+| YouTube | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN` | Google Cloud Console (OAuth Web app) + script local de generare refresh token (o singură dată) |
+| Firebase (opțional) | `firebase_credentials.json`, `FIREBASE_DB_URL` | Firebase Console → Project Settings → Service Accounts → Generate key + Realtime Database URL. Fără asta, starea pipeline-ului se salvează local în `output/runs.json`. |
 
-### Autentificare YouTube (prima rulare, local)
+### Autentificare YouTube (o singură dată)
 
-```bash
-python -m src.upload.youtube_upload
-```
+Cu `YOUTUBE_CLIENT_ID` + `YOUTUBE_CLIENT_SECRET` + `YOUTUBE_REFRESH_TOKEN` setate în `.env`
+(sau ca secrete GitHub), nu mai e nevoie de niciun fișier sau pas interactiv —
+`src/upload/youtube_upload.py` face refresh automat al token-ului la fiecare rulare,
+inclusiv headless în GitHub Actions.
 
-Se va deschide un flow OAuth în browser; după autorizare se generează `config/token.json`.
+Dacă nu ai încă un refresh token, generează-l o singură dată local (Client ID/Secret
+de tip "Web application" din Google Cloud Console, cu redirect URI
+`http://localhost:8080/callback`), apoi salvează cele 3 valori în `.env`.
 
 ## ▶️ Rulare
 
