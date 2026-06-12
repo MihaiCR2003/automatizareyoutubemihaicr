@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 
 from src.config import CONFIG, path_from_root
-from src.script_generation.generate_script import generate_script
+from src.script_generation.generate_script import generate_script, generate_script_from_candidates
 from src.storage import db
 from src.telegram_bot import notifier
 from src.trending.get_trends import get_trending_topics_with_context
@@ -28,16 +28,15 @@ def run_pipeline(topic: str | None = None) -> str:
     if CONFIG["telegram"]["notify_on_start"]:
         notifier.send_message(f"Pornesc generarea videoclipului ({run_id})...")
 
-    context = ""
-    if not topic:
-        topics = get_trending_topics_with_context()
-        if topics:
-            topic = topics[0]["topic"]
-            context = topics[0]["context"]
-        else:
-            topic = "Curiozitati interesante"
+    if topic:
+        script = generate_script(topic, "")
+    else:
+        candidates = get_trending_topics_with_context()
+        if not candidates:
+            candidates = [{"topic": "Curiozitati interesante", "context": ""}]
 
-    script = generate_script(topic, context)
+        script = generate_script_from_candidates(candidates)
+        topic = script.get("subiect_ales", candidates[0]["topic"])
 
     voice_path = output_dir / "voice_over.mp3"
     generate_voice_over(script["voice_over"], voice_path)

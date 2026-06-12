@@ -65,7 +65,7 @@ script_generation:
 trending:
   provider: "google_trends"
   geo: "RO"
-  topics_count: 5
+  topics_count: 8
 
 scheduling:
   daily_run_time: "18:00"

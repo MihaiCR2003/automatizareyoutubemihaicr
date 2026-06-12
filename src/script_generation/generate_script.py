@@ -28,10 +28,6 @@ EXPRESII_DISPONIBILE = [
 
 
 def _build_prompt(topic: str, context: str = "") -> str:
-    max_tokens = CONFIG["script_generation"]["max_tokens"]
-    target_seconds = CONFIG["video"]["max_duration_seconds"]
-    expresii = ", ".join(EXPRESII_DISPONIBILE)
-
     context_block = ""
     if context:
         context_block = (
@@ -39,11 +35,54 @@ def _build_prompt(topic: str, context: str = "") -> str:
             f"\"{context}\"\n"
         )
 
-    return (
+    intro = (
         "Esti un scenarist profesionist pentru YouTube Shorts in limba romana, specializat in "
         "continut de stiri/curiozitati captivant, bine documentat si tinut lipit de ecran. "
-        f"Scrie un scenariu despre subiectul trending: \"{topic}\"."
+        f"Scrie un scenariu despre subiectul: \"{topic}\"."
         f"{context_block}"
+    )
+
+    return intro + _script_instructions()
+
+
+def _build_candidates_prompt(candidates: list[dict]) -> str:
+    """Construieste un prompt care alege cel mai bun subiect dintr-o lista de candidati trending."""
+    candidates_text = "\n".join(
+        f"{i + 1}. \"{c['topic']}\""
+        + (f" - context: {c['context']}" if c.get("context") else "")
+        for i, c in enumerate(candidates)
+    )
+
+    intro = (
+        "Esti un scenarist profesionist pentru YouTube Shorts in limba romana, care administreaza "
+        "un canal de stiri/curiozitati cu scopul de a creste cat mai mult numarul de abonati "
+        "si vizualizari."
+        "\n\nIata o lista de subiecte trending in Romania chiar acum:\n"
+        f"{candidates_text}\n\n"
+        "Alege subiectul cu cel mai mare potential de viralizare pentru un public larg "
+        "(curiozitati, mister, stiinta, tehnologie, istorie, fapte socante, evenimente importante). "
+        "Evita subiectele inguste de tip barfe locale TV/sport, transferuri de fotbalisti necunoscuti "
+        "sau dispute personale intre persoane publice putin relevante, DOAR DACA nu exista "
+        "o alternativa mai buna in lista - in acest caz, gaseste un unghi cat mai larg si interesant "
+        "pentru subiectul ales."
+        "\n\nIncepe raspunsul JSON cu cheia \"subiect_ales\" (subiectul exact ales din lista de mai sus), "
+        "apoi scrie scenariul pentru acel subiect."
+    )
+
+    return (
+        intro
+        + _script_instructions()
+        + "\n\nNu uita sa incluzi si cheia \"subiect_ales\" in JSON-ul de raspuns, "
+        "alaturi de titlu, descriere, tags, voice_over, segments."
+    )
+
+
+def _script_instructions() -> str:
+    max_tokens = CONFIG["script_generation"]["max_tokens"]
+    target_seconds = CONFIG["video"]["max_duration_seconds"]
+    expresii = ", ".join(EXPRESII_DISPONIBILE)
+
+    return (
         f"\n\nVoice-over-ul trebuie sa dureze in jur de {target_seconds} de secunde "
         "(aproximativ 1.8-2 cuvinte/secunda in limba romana, deci aproximativ "
         f"{int(target_seconds * 1.9)} de cuvinte in total). "
@@ -147,6 +186,57 @@ def generate_script(topic: str, context: str = "") -> dict:
     return _prepend_intro(script)
 
 
+def generate_script_from_candidates(candidates: list[dict]) -> dict:
+    """Alege cel mai bun subiect dintr-o lista de candidati trending si genereaza scriptul.
+
+    `candidates` este o lista de dict-uri cu cheile: topic, context.
+    Returneaza scriptul (cu cheile uzuale) plus cheia "subiect_ales" cu subiectul ales.
+    """
+    model = CONFIG["script_generation"]["model"]
+    api_key = env("GEMINI_API_KEY")
+
+    if not api_key:
+        raise RuntimeError(
+            "GEMINI_API_KEY nu este setat (variabila de mediu este goala sau lipseste)."
+        )
+
+    payload = {
+        "contents": [{"parts": [{"text": _build_candidates_prompt(candidates)}]}],
+        "generationConfig": {
+            "temperature": 0.8,
+            "maxOutputTokens": CONFIG["script_generation"]["max_tokens"],
+            "thinkingConfig": {"thinkingBudget": 0},
+        },
+    }
+
+    fallback_topic = candidates[0]["topic"] if candidates else "Curiozitati interesante"
+
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        response = requests.post(
+            GEMINI_API_URL.format(model=model),
+            params={"key": api_key},
+            json=payload,
+            timeout=120,
+        )
+        if response.ok:
+            break
+
+        print(f"Gemini API error {response.status_code}: {response.text}")
+        if response.status_code in (429, 503) and attempt < max_retries:
+            time.sleep(10 * attempt)
+            continue
+        response.raise_for_status()
+
+    result = response.json()
+
+    generated_text = result["candidates"][0]["content"]["parts"][0]["text"]
+
+    script = _parse_script_response(generated_text, fallback_topic=fallback_topic)
+    script.setdefault("subiect_ales", fallback_topic)
+    return _prepend_intro(script)
+
+
 def _prepend_intro(script: dict) -> dict:
     """Adauga un intro fix, presetat, la inceputul voice-over-ului si segmentelor."""
     intro_text = INTRO_TEMPLATE.format(titlu=script["titlu"])
@@ -181,6 +271,7 @@ def _parse_script_response(text: str, fallback_topic: str) -> dict:
         "tags": [fallback_topic],
         "voice_over": text.strip(),
         "segments": [{"text": text.strip(), "expresie": "neutral"}],
+        "subiect_ales": fallback_topic,
     }
 
 
