@@ -38,12 +38,12 @@ def main() -> None:
             "client_secret": client_secret,
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://oauth2.googleapis.com/token",
-            "redirect_uris": ["http://localhost:8080/"],
+            "redirect_uris": ["http://localhost:8765/"],
         }
     }
 
     flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
-    creds = flow.run_local_server(port=8080, open_browser=True)
+    creds = flow.run_local_server(port=8765, open_browser=True)
 
     print("\nRefresh token nou:\n")
     print(creds.refresh_token)
