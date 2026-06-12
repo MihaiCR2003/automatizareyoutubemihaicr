@@ -23,28 +23,55 @@ EXPRESII_DISPONIBILE = [
 ]
 
 
-def _build_prompt(topic: str) -> str:
+def _build_prompt(topic: str, context: str = "") -> str:
     max_tokens = CONFIG["script_generation"]["max_tokens"]
+    target_seconds = CONFIG["video"]["max_duration_seconds"]
     expresii = ", ".join(EXPRESII_DISPONIBILE)
+
+    context_block = ""
+    if context:
+        context_block = (
+            f"\nContext / stiri recente despre acest subiect (foloseste-le pentru acuratete si detalii): "
+            f"\"{context}\"\n"
+        )
+
     return (
-        "Esti un scenarist pentru YouTube Shorts in limba romana. "
-        f"Scrie un scenariu scurt, captivant, despre subiectul: \"{topic}\". "
-        "Scenariul trebuie sa contina: un titlu atractiv, o descriere scurta pentru YouTube, "
-        "5-8 tag-uri relevante, si textul de voice-over (maxim 60 de secunde de vorbire, "
-        "stil natural, conversational), impartit in segmente. "
+        "Esti un scenarist expert pentru YouTube Shorts in limba romana, specializat in "
+        "continut captivant care tine privitorul lipit de ecran. "
+        f"Scrie un scenariu despre subiectul trending: \"{topic}\"."
+        f"{context_block}"
+        f"\n\nVoice-over-ul trebuie sa dureze in jur de {target_seconds} de secunde "
+        "(aproximativ 1.8-2 cuvinte/secunda in limba romana, deci aproximativ "
+        f"{int(target_seconds * 1.9)} de cuvinte in total). "
+        "\n\nStructura narativa OBLIGATORIE pentru a maximiza retentia: "
+        "1) HOOK (primele 3-5 secunde) - o intrebare provocatoare, un fapt soc sau o promisiune "
+        "care creeaza curiozitate imediata, fara introduceri plictisitoare; "
+        "2) BUILD-UP - dezvolta contextul si creste tensiunea/curiozitatea treptat, "
+        "introduce detalii surprinzatoare pe rand; "
+        "3) CLIMAX/TWIST - punctul culminant, revelatia sau informatia cea mai surprinzatoare; "
+        "4) CONCLUZIE + CALL TO ACTION - o concluzie memorabila si o indemnare scurta "
+        "(ex: abonare, parerea ta in comentarii, urmareste pentru partea 2). "
+        "Foloseste propozitii scurte, ritm rapid, intrebari retorice si mici cliffhanger-uri "
+        "intre segmente (\"dar asta nu e tot...\", \"si aici devine interesant...\") "
+        "pentru a tine privitorul captivat pana la final."
+        "\n\nScenariul trebuie sa contina: "
+        "un titlu atractiv (sub 100 caractere, stil clickbait dar adevarat), "
+        "o descriere pentru YouTube (2-3 propozitii + 3-5 hashtag-uri relevante la final), "
+        "5-8 tag-uri relevante pentru subiect (fara #), "
+        "si textul complet de voice-over, impartit in segmente narative scurte (propozitie/idee). "
         "Fiecare segment are propriul text si o expresie faciala pentru personaj, "
         f"aleasa STRICT din lista: {expresii}. "
         "Alege expresia in functie de continutul segmentului "
         "(ex: 'scared' pentru momente infricosatoare/tensionate, 'surprised' pentru o revelatie, "
         "'laughing' pentru ceva amuzant, 'explaining'/'thinking' pentru informatii, "
         "'pointing' pentru a atrage atentia, 'smile'/'neutral' pentru introducere/incheiere). "
-        "Raspunde STRICT in format JSON cu cheile: titlu, descriere, tags, voice_over, "
+        "\n\nRaspunde STRICT in format JSON cu cheile: titlu, descriere, tags, voice_over, "
         "segments (lista de obiecte cu cheile: text, expresie)."
         f" Limiteaza raspunsul la aproximativ {max_tokens} tokeni."
     )
 
 
-def generate_script(topic: str) -> dict:
+def generate_script(topic: str, context: str = "") -> dict:
     """Genereaza un dict cu titlu, descriere, tags si voice_over pentru un subiect dat."""
     model = CONFIG["script_generation"]["model"]
     api_key = env("GEMINI_API_KEY")
@@ -55,7 +82,7 @@ def generate_script(topic: str) -> dict:
         )
 
     payload = {
-        "contents": [{"parts": [{"text": _build_prompt(topic)}]}],
+        "contents": [{"parts": [{"text": _build_prompt(topic, context)}]}],
         "generationConfig": {
             "temperature": 0.8,
             "maxOutputTokens": CONFIG["script_generation"]["max_tokens"],
