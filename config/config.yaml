@@ -63,4 +63,4 @@ youtube:
 telegram:
   notify_on_start: true
   notify_on_finish: true
-  require_approval_before_upload: true
+  require_approval_before_upload: false
