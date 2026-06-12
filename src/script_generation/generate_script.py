@@ -43,6 +43,8 @@ def generate_script(topic: str) -> dict:
         json=payload,
         timeout=120,
     )
+    if not response.ok:
+        print(f"Gemini API error {response.status_code}: {response.text}")
     response.raise_for_status()
     result = response.json()
 
