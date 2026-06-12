@@ -29,6 +29,11 @@ def generate_script(topic: str) -> dict:
     model = CONFIG["script_generation"]["model"]
     api_key = env("GEMINI_API_KEY")
 
+    if not api_key:
+        raise RuntimeError(
+            "GEMINI_API_KEY nu este setat (variabila de mediu este goala sau lipseste)."
+        )
+
     payload = {
         "contents": [{"parts": [{"text": _build_prompt(topic)}]}],
         "generationConfig": {
