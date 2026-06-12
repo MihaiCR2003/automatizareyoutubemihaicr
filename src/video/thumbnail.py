@@ -36,9 +36,17 @@ def generate_thumbnail(title: str, output_path: Path, character_image: str | Non
     )
 
     draw = ImageDraw.Draw(canvas)
-    try:
-        font = ImageFont.truetype("arialbd.ttf", 90)
-    except OSError:
+    font = None
+    for font_path in (
+        "arialbd.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    ):
+        try:
+            font = ImageFont.truetype(font_path, 90)
+            break
+        except OSError:
+            continue
+    if font is None:
         font = ImageFont.load_default()
 
     _draw_wrapped_text(draw, title, font, width, padding=60, fill=(255, 255, 255, 255))
