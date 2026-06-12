@@ -46,8 +46,8 @@ tts:
   model: "eleven_multilingual_v2"
 
 script_generation:
-  provider: "huggingface"
-  model: "mistralai/Mixtral-8x7B-Instruct-v0.1"
+  provider: "gemini"
+  model: "gemini-2.5-flash"
   max_tokens: 400
   language: "ro"
 

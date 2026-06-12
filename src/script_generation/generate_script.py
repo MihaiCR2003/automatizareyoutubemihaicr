@@ -1,4 +1,4 @@
-"""Genereaza scriptul pentru un YouTube Short folosind Hugging Face Inference API (gratuit)."""
+"""Genereaza scriptul pentru un YouTube Short folosind Google Gemini API (free tier)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import requests
 
 from src.config import CONFIG, env
 
-HF_API_URL = "https://api-inference.huggingface.co/models/{model}"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
 def _build_prompt(topic: str) -> str:
@@ -27,25 +27,26 @@ def _build_prompt(topic: str) -> str:
 def generate_script(topic: str) -> dict:
     """Genereaza un dict cu titlu, descriere, tags si voice_over pentru un subiect dat."""
     model = CONFIG["script_generation"]["model"]
-    token = env("HUGGINGFACE_API_TOKEN")
+    api_key = env("GEMINI_API_KEY")
 
-    headers = {"Authorization": f"Bearer {token}"}
     payload = {
-        "inputs": _build_prompt(topic),
-        "parameters": {
-            "max_new_tokens": CONFIG["script_generation"]["max_tokens"],
+        "contents": [{"parts": [{"text": _build_prompt(topic)}]}],
+        "generationConfig": {
             "temperature": 0.8,
-            "return_full_text": False,
+            "maxOutputTokens": CONFIG["script_generation"]["max_tokens"],
         },
     }
 
     response = requests.post(
-        HF_API_URL.format(model=model), headers=headers, json=payload, timeout=120
+        GEMINI_API_URL.format(model=model),
+        params={"key": api_key},
+        json=payload,
+        timeout=120,
     )
     response.raise_for_status()
     result = response.json()
 
-    generated_text = result[0]["generated_text"] if isinstance(result, list) else result["generated_text"]
+    generated_text = result["candidates"][0]["content"]["parts"][0]["text"]
 
     return _parse_script_response(generated_text, fallback_topic=topic)
 

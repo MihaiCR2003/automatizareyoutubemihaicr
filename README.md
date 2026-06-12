@@ -22,7 +22,7 @@ YouTube Shorts (1080x1920), cu voice-over natural în română, personaj PNG, fu
 │   └── schema.sql         # Schema tabelei "runs" (storage stare pipeline)
 ├── src/
 │   ├── trending/          # Identificare subiecte trending (Google Trends)
-│   ├── script_generation/ # Generare script via Hugging Face
+│   ├── script_generation/ # Generare script via Gemini
 │   ├── tts/                # Voice-over via ElevenLabs
 │   ├── video/              # Compositing video (MoviePy) + thumbnail (Pillow)
 │   ├── upload/             # Upload YouTube (Data API v3)
@@ -47,7 +47,7 @@ YouTube Shorts (1080x1920), cu voice-over natural în română, personaj PNG, fu
 | Serviciu | Variabilă | Cum obții |
 |---|---|---|
 | ElevenLabs | `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` | Cont gratuit pe elevenlabs.io, alege/clonează o voce română |
-| Hugging Face | `HUGGINGFACE_API_TOKEN` | Token gratuit din Settings → Access Tokens pe huggingface.co |
+| Gemini | `GEMINI_API_KEY` | Cheie gratuită din aistudio.google.com → Get API Key |
 | Telegram | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Creează bot cu @BotFather, ia chat_id cu @userinfobot |
 | YouTube | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN` | Google Cloud Console (OAuth Web app) + script local de generare refresh token (o singură dată) |
 | Supabase (opțional) | `SUPABASE_URL`, `SUPABASE_KEY` | Proiect gratuit pe supabase.com → rulează `supabase/schema.sql` în SQL Editor → `SUPABASE_KEY` = "secret key" (service role). Fără asta, starea pipeline-ului se salvează local în `output/runs.json`. |
@@ -87,7 +87,7 @@ Workflow-ul `.github/workflows/daily-pipeline.yml` rulează zilnic în jurul ore
 cu subiect custom opțional).
 
 Adaugă în **Settings → Secrets and variables → Actions** următoarele secrete:
-`ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, `HUGGINGFACE_API_TOKEN`,
+`ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, `GEMINI_API_KEY`,
 `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `SUPABASE_URL`, `SUPABASE_KEY`,
 `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN`.
 
