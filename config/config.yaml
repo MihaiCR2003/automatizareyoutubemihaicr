@@ -50,9 +50,9 @@ audio:
   voice_volume: 1.0
 
 tts:
-  provider: "elevenlabs"
+  provider: "edge_tts"
   language: "ro"
-  model: "eleven_multilingual_v2"
+  voice: "ro-RO-EmilNeural"
 
 script_generation:
   provider: "gemini"

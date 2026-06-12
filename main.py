@@ -10,7 +10,7 @@ from src.script_generation.generate_script import generate_script
 from src.storage import db
 from src.telegram_bot import notifier
 from src.trending.get_trends import get_trending_topics_with_context
-from src.tts.elevenlabs_tts import generate_voice_over
+from src.tts.voice_over import generate_voice_over
 from src.upload.youtube_upload import upload_video
 from src.video.compositor import build_video
 from src.video.thumbnail import generate_thumbnail

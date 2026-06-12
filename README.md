@@ -23,7 +23,7 @@ YouTube Shorts (1080x1920), cu voice-over natural în română, personaj PNG, fu
 ├── src/
 │   ├── trending/          # Identificare subiecte trending (Google Trends)
 │   ├── script_generation/ # Generare script via Gemini
-│   ├── tts/                # Voice-over via ElevenLabs
+│   ├── tts/                # Voice-over via Edge TTS
 │   ├── video/              # Compositing video (MoviePy) + thumbnail (Pillow)
 │   ├── upload/             # Upload YouTube (Data API v3)
 │   ├── storage/            # Stare pipeline (Supabase Postgres)
@@ -46,7 +46,7 @@ YouTube Shorts (1080x1920), cu voice-over natural în română, personaj PNG, fu
 
 | Serviciu | Variabilă | Cum obții |
 |---|---|---|
-| ElevenLabs | `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` | Cont gratuit pe elevenlabs.io, alege/clonează o voce română |
+| Edge TTS | - | Fără cheie - voce română gratuită (`ro-RO-EmilNeural` / `ro-RO-AlinaNeural`, configurabil în `config/config.yaml`) |
 | Gemini | `GEMINI_API_KEY` | Cheie gratuită din aistudio.google.com → Get API Key |
 | Telegram | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Creează bot cu @BotFather, ia chat_id cu @userinfobot |
 | YouTube | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN` | Google Cloud Console (OAuth Web app) + script local de generare refresh token (o singură dată) |
@@ -87,8 +87,7 @@ Workflow-ul `.github/workflows/daily-pipeline.yml` rulează zilnic în jurul ore
 cu subiect custom opțional).
 
 Adaugă în **Settings → Secrets and variables → Actions** următoarele secrete:
-`ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, `GEMINI_API_KEY`,
-`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `SUPABASE_URL`, `SUPABASE_KEY`,
+`GEMINI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `SUPABASE_URL`, `SUPABASE_KEY`,
 `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN`.
 
 ## 📝 Configurare
