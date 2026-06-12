@@ -1,0 +1,26 @@
+python-dotenv==1.0.1
+requests==2.32.3
+pyyaml==6.0.2
+
+# Trending
+pytrends==4.9.2
+
+# TTS
+elevenlabs==1.9.0
+
+# Video / image processing
+moviepy==1.0.3
+Pillow==10.4.0
+pydub==0.25.1
+numpy==1.26.4
+
+# Telegram bot
+python-telegram-bot==21.6
+
+# YouTube upload
+google-api-python-client==2.149.0
+google-auth-oauthlib==1.2.1
+google-auth-httplib2==0.2.0
+
+# Storage
+firebase-admin==6.5.0

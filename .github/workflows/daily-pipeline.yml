@@ -1,0 +1,65 @@
+name: Daily YouTube Shorts Pipeline
+
+on:
+  schedule:
+    # 16:00 UTC ~= 18:00 Europe/Bucharest (EET, iarna).
+    # Vara (EEST) va rula la 19:00 ora locala - drift acceptat pentru un serviciu gratuit.
+    - cron: "0 16 * * *"
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: "Subiect custom (optional, altfel se foloseste trending)"
+        required: false
+        default: ""
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore secrets and credentials
+        run: |
+          mkdir -p config
+          echo "${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}" > config/client_secret.json
+          echo "${{ secrets.YOUTUBE_TOKEN_JSON }}" > config/token.json
+          echo "${{ secrets.FIREBASE_CREDENTIALS_JSON }}" > config/firebase_credentials.json
+
+      - name: Run pipeline
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
+          HUGGINGFACE_API_TOKEN: ${{ secrets.HUGGINGFACE_API_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
+          PIPELINE_TOPIC: ${{ github.event.inputs.topic }}
+        run: |
+          python -c "
+          import os
+          from main import run_pipeline
+          topic = os.environ.get('PIPELINE_TOPIC') or None
+          run_pipeline(topic)
+          "
+
+      - name: Upload generated assets as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-output
+          path: output/
+          retention-days: 7

@@ -1,0 +1,15 @@
+.env
+.claude/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Output generat
+output/*
+!output/.gitkeep
+
+# Credentiale sensibile
+config/client_secret.json
+config/token.json
+config/firebase_credentials.json
