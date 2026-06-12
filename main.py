@@ -10,7 +10,7 @@ from src.script_generation.generate_script import generate_script, generate_scri
 from src.storage import db
 from src.telegram_bot import notifier
 from src.trending.get_trends import get_trending_topics_with_context
-from src.tts.voice_over import generate_voice_over
+from src.tts.voice_over import generate_voice_over_segments
 from src.upload.youtube_upload import upload_video
 from src.video.compositor import build_video
 from src.video.thumbnail import generate_thumbnail
@@ -38,11 +38,10 @@ def run_pipeline(topic: str | None = None) -> str:
         script = generate_script_from_candidates(candidates)
         topic = script.get("subiect_ales", candidates[0]["topic"])
 
-    voice_path = output_dir / "voice_over.mp3"
-    generate_voice_over(script["voice_over"], voice_path)
+    voice_path, timed_segments = generate_voice_over_segments(script["segments"], output_dir)
 
     video_path = output_dir / "video.mp4"
-    build_video(voice_path, video_path, segments=script.get("segments"))
+    build_video(voice_path, video_path, segments=timed_segments)
 
     thumbnail_path = output_dir / "thumbnail.jpg"
     generate_thumbnail(script["titlu"], thumbnail_path)

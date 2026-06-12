@@ -72,7 +72,25 @@ def _load_background(duration: float):
 
 
 def _segment_timings(duration: float, segments: list[dict]) -> list[tuple[float, float, dict]]:
-    """Calculeaza (start, durata, segment) pentru fiecare segment, proportional cu lungimea textului."""
+    """Calculeaza (start, durata, segment) pentru fiecare segment.
+
+    Daca segmentele au deja "start"/"duration" (calculate din audio-ul real
+    generat per-segment), le folosim direct pentru sincronizare exacta.
+    Altfel, calculam proportional cu lungimea textului (fallback).
+    """
+    if segments and "start" in segments[0] and "duration" in segments[0]:
+        timings = []
+        for seg in segments:
+            start = seg["start"]
+            seg_len = seg["duration"]
+            if start >= duration:
+                break
+            seg_len = min(seg_len, duration - start)
+            if seg_len <= 0:
+                continue
+            timings.append((start, seg_len, seg))
+        return timings
+
     total_len = sum(max(len(seg.get("text", "")), 1) for seg in segments) or 1
     timings = []
     t = 0.0
