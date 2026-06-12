@@ -12,10 +12,14 @@ from src.config import CONFIG
 
 def generate_voice_over(text: str, output_path: Path) -> Path:
     """Genereaza fisierul audio de voice-over si il salveaza la output_path."""
-    voice = CONFIG["tts"]["voice"]
+    tts_cfg = CONFIG["tts"]
+    voice = tts_cfg["voice"]
+    rate = tts_cfg.get("rate", "+0%")
+    pitch = tts_cfg.get("pitch", "+0Hz")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    asyncio.run(edge_tts.Communicate(text, voice).save(str(output_path)))
+    communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
+    asyncio.run(communicate.save(str(output_path)))
 
     return output_path
 
