@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 
 import requests
 
@@ -97,15 +98,23 @@ def generate_script(topic: str, context: str = "") -> dict:
         },
     }
 
-    response = requests.post(
-        GEMINI_API_URL.format(model=model),
-        params={"key": api_key},
-        json=payload,
-        timeout=120,
-    )
-    if not response.ok:
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        response = requests.post(
+            GEMINI_API_URL.format(model=model),
+            params={"key": api_key},
+            json=payload,
+            timeout=120,
+        )
+        if response.ok:
+            break
+
         print(f"Gemini API error {response.status_code}: {response.text}")
-    response.raise_for_status()
+        if response.status_code in (429, 503) and attempt < max_retries:
+            time.sleep(10 * attempt)
+            continue
+        response.raise_for_status()
+
     result = response.json()
 
     generated_text = result["candidates"][0]["content"]["parts"][0]["text"]
