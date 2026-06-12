@@ -11,21 +11,29 @@ character:
   # Imagini PNG cu personajul in diferite pozitii/expresii (fundal transparent)
   assets_dir: "assets/characters"
   positions:
-    - name: "idle"
-      file: "idle.png"
-    - name: "talking"
-      file: "talking.png"
-    - name: "excited"
-      file: "excited.png"
+    - name: "neutral"
+      file: "neutral.png"
+    - name: "smile"
+      file: "smile.png"
     - name: "pointing"
       file: "pointing.png"
+    - name: "explaining"
+      file: "explaining.png"
+    - name: "thinking"
+      file: "thinking.png"
+    - name: "surprised"
+      file: "surprised.png"
+    - name: "scared"
+      file: "scared.png"
+    - name: "laughing"
+      file: "laughing.png"
   # Pozitie si scalare implicita pe canvas (procent din latime/inaltime)
   default_scale: 0.6
   default_position: ["center", "bottom"]
 
 background:
   assets_dir: "assets/backgrounds"
-  default: "default_bg.mp4"
+  default: "cabin_horror_1.png"
 
 audio:
   music_dir: "assets/music"

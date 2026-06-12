@@ -15,17 +15,18 @@ YouTube Shorts (1080x1920), cu voice-over natural în română, personaj PNG, fu
 │   └── music/           # Muzică ambientală (mp3/wav)
 ├── config/
 │   ├── config.yaml       # Configurare generală
-│   ├── client_secret.json  # OAuth YouTube (nu se comite)
-│   ├── token.json           # Token YouTube generat (nu se comite)
-│   └── firebase_credentials.json  # Credențiale Firebase (nu se comite)
+│   ├── client_secret.json  # OAuth YouTube, fallback local (nu se comite)
+│   └── token.json           # Token YouTube, fallback local (nu se comite)
 ├── output/               # Videoclipuri generate (per run_id)
+├── supabase/
+│   └── schema.sql         # Schema tabelei "runs" (storage stare pipeline)
 ├── src/
 │   ├── trending/          # Identificare subiecte trending (Google Trends)
 │   ├── script_generation/ # Generare script via Hugging Face
 │   ├── tts/                # Voice-over via ElevenLabs
 │   ├── video/              # Compositing video (MoviePy) + thumbnail (Pillow)
 │   ├── upload/             # Upload YouTube (Data API v3)
-│   ├── storage/            # Stare pipeline (Firebase Realtime DB)
+│   ├── storage/            # Stare pipeline (Supabase Postgres)
 │   └── telegram_bot/       # Bot de control + notificări
 ├── main.py                # Orchestrator pipeline
 ├── requirements.txt
@@ -49,7 +50,7 @@ YouTube Shorts (1080x1920), cu voice-over natural în română, personaj PNG, fu
 | Hugging Face | `HUGGINGFACE_API_TOKEN` | Token gratuit din Settings → Access Tokens pe huggingface.co |
 | Telegram | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Creează bot cu @BotFather, ia chat_id cu @userinfobot |
 | YouTube | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN` | Google Cloud Console (OAuth Web app) + script local de generare refresh token (o singură dată) |
-| Firebase (opțional) | `firebase_credentials.json`, `FIREBASE_DB_URL` | Firebase Console → Project Settings → Service Accounts → Generate key + Realtime Database URL. Fără asta, starea pipeline-ului se salvează local în `output/runs.json`. |
+| Supabase (opțional) | `SUPABASE_URL`, `SUPABASE_KEY` | Proiect gratuit pe supabase.com → rulează `supabase/schema.sql` în SQL Editor → `SUPABASE_KEY` = "secret key" (service role). Fără asta, starea pipeline-ului se salvează local în `output/runs.json`. |
 
 ### Autentificare YouTube (o singură dată)
 
@@ -87,13 +88,8 @@ cu subiect custom opțional).
 
 Adaugă în **Settings → Secrets and variables → Actions** următoarele secrete:
 `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, `HUGGINGFACE_API_TOKEN`,
-`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `FIREBASE_DB_URL`,
-`YOUTUBE_CLIENT_SECRET_JSON`, `YOUTUBE_TOKEN_JSON`, `FIREBASE_CREDENTIALS_JSON`
-(conținutul fișierelor JSON corespunzătoare, ca string).
-
-> Notă: token-ul YouTube (`token.json`) trebuie generat o singură dată local
-> (vezi secțiunea de autentificare) și apoi salvat ca secret, pentru ca
-> GitHub Actions să poată face refresh automat fără interacțiune.
+`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `SUPABASE_URL`, `SUPABASE_KEY`,
+`YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN`.
 
 ## 📝 Configurare
 

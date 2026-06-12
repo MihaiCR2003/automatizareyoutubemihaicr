@@ -1,8 +1,10 @@
 """Stocare stare pipeline (idei in asteptare, status upload).
 
-Foloseste Firebase Realtime DB daca este configurat (FIREBASE_DB_URL +
-firebase_credentials.json). Altfel, cade automat pe un fisier JSON local
-(output/runs.json), util pentru testare fara cont Firebase.
+Foloseste Supabase (Postgres via REST/PostgREST) daca este configurat
+(SUPABASE_URL + SUPABASE_KEY). Altfel, cade automat pe un fisier JSON
+local (output/runs.json), util pentru testare fara cont Supabase.
+
+Schema necesara este in supabase/schema.sql.
 """
 
 from __future__ import annotations
@@ -10,30 +12,31 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from src.config import env, path_from_root
+import requests
 
-_app = None
+from src.config import env, path_from_root
 
 _LOCAL_STORE = path_from_root("output", "runs.json")
 
 
-def _firebase_configured() -> bool:
-    cred_path = path_from_root(env("FIREBASE_CREDENTIALS_FILE", "config/firebase_credentials.json"))
-    return cred_path.exists() and bool(env("FIREBASE_DB_URL"))
+def _supabase_configured() -> bool:
+    return bool(env("SUPABASE_URL")) and bool(env("SUPABASE_KEY"))
 
 
-def _get_app():
-    global _app
-    if _app is None:
-        import firebase_admin
-        from firebase_admin import credentials
+def _supabase_headers() -> dict[str, str]:
+    key = env("SUPABASE_KEY")
+    return {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+    }
 
-        cred_path = path_from_root(env("FIREBASE_CREDENTIALS_FILE", "config/firebase_credentials.json"))
-        cred = credentials.Certificate(str(cred_path))
-        _app = firebase_admin.initialize_app(
-            cred, {"databaseURL": env("FIREBASE_DB_URL")}
-        )
-    return _app
+
+def _runs_url() -> str:
+    base = env("SUPABASE_URL").rstrip("/")
+    if not base.endswith("/rest/v1"):
+        base = f"{base}/rest/v1"
+    return f"{base}/runs"
 
 
 def _load_local() -> dict[str, Any]:
@@ -49,11 +52,11 @@ def _save_local(runs: dict[str, Any]) -> None:
 
 def save_run(run_id: str, data: dict[str, Any]) -> None:
     """Salveaza datele unei rulari (script, status, link video etc.)."""
-    if _firebase_configured():
-        from firebase_admin import db
-
-        _get_app()
-        db.reference(f"runs/{run_id}").set(data)
+    if _supabase_configured():
+        payload = {"run_id": run_id, "status": data.get("status"), "data": data}
+        headers = {**_supabase_headers(), "Prefer": "resolution=merge-duplicates"}
+        response = requests.post(_runs_url(), headers=headers, json=payload, timeout=30)
+        response.raise_for_status()
         return
 
     runs = _load_local()
@@ -62,11 +65,10 @@ def save_run(run_id: str, data: dict[str, Any]) -> None:
 
 
 def update_run(run_id: str, updates: dict[str, Any]) -> None:
-    if _firebase_configured():
-        from firebase_admin import db
-
-        _get_app()
-        db.reference(f"runs/{run_id}").update(updates)
+    if _supabase_configured():
+        run = get_run(run_id) or {}
+        run.update(updates)
+        save_run(run_id, run)
         return
 
     runs = _load_local()
@@ -75,23 +77,31 @@ def update_run(run_id: str, updates: dict[str, Any]) -> None:
 
 
 def get_run(run_id: str) -> dict[str, Any] | None:
-    if _firebase_configured():
-        from firebase_admin import db
-
-        _get_app()
-        return db.reference(f"runs/{run_id}").get()
+    if _supabase_configured():
+        response = requests.get(
+            _runs_url(),
+            headers=_supabase_headers(),
+            params={"run_id": f"eq.{run_id}", "select": "data"},
+            timeout=30,
+        )
+        response.raise_for_status()
+        rows = response.json()
+        return rows[0]["data"] if rows else None
 
     return _load_local().get(run_id)
 
 
 def get_pending_runs() -> dict[str, Any]:
     """Returneaza rularile care asteapta aprobare/upload."""
-    if _firebase_configured():
-        from firebase_admin import db
-
-        _get_app()
-        runs = db.reference("runs").order_by_child("status").equal_to("pending_approval").get()
-        return runs or {}
+    if _supabase_configured():
+        response = requests.get(
+            _runs_url(),
+            headers=_supabase_headers(),
+            params={"status": "eq.pending_approval", "select": "run_id,data"},
+            timeout=30,
+        )
+        response.raise_for_status()
+        return {row["run_id"]: row["data"] for row in response.json()}
 
     return {
         run_id: data
