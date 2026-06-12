@@ -40,13 +40,19 @@ def _build_prompt(topic: str, context: str = "") -> str:
         )
 
     return (
-        "Esti un scenarist expert pentru YouTube Shorts in limba romana, specializat in "
-        "continut captivant care tine privitorul lipit de ecran. "
+        "Esti un scenarist profesionist pentru YouTube Shorts in limba romana, specializat in "
+        "continut de stiri/curiozitati captivant, bine documentat si tinut lipit de ecran. "
         f"Scrie un scenariu despre subiectul trending: \"{topic}\"."
         f"{context_block}"
         f"\n\nVoice-over-ul trebuie sa dureze in jur de {target_seconds} de secunde "
         "(aproximativ 1.8-2 cuvinte/secunda in limba romana, deci aproximativ "
         f"{int(target_seconds * 1.9)} de cuvinte in total). "
+        "\n\nCERINTE DE LIMBA (FOARTE IMPORTANT): Scrie in limba romana literara, corecta "
+        "gramatical, cu toate diacriticele corecte si consistente: ă, â, î, ș, ț "
+        "(NU folosi s/t simple in locul lui ș/ț si NU folosi diacritice gresite gen ş/ţ cu virgula). "
+        "Foloseste un ton profesionist, dar accesibil si conversational - ca un prezentator "
+        "de stiri/curiozitati priceput, nu ca un robot. Verifica acuratetea informatiilor "
+        "folosind contextul oferit, fara a inventa detalii false."
         "\n\nIMPORTANT: NU include nicio introducere/salut la inceput (acestea sunt adaugate "
         "separat de sistem) si NU pronunta in voice_over cuvinte ca \"titlu\", \"json\", "
         "\"descriere\", \"tags\" sau alte denumiri tehnice - voice_over-ul trebuie sa fie "

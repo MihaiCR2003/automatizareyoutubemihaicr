@@ -10,6 +10,7 @@ from moviepy.editor import (
     CompositeAudioClip,
     CompositeVideoClip,
     ImageClip,
+    TextClip,
     VideoFileClip,
     afx,
     vfx,
@@ -43,6 +44,57 @@ def _load_background(duration: float):
     return clip
 
 
+def _segment_timings(duration: float, segments: list[dict]) -> list[tuple[float, float, dict]]:
+    """Calculeaza (start, durata, segment) pentru fiecare segment, proportional cu lungimea textului."""
+    total_len = sum(max(len(seg.get("text", "")), 1) for seg in segments) or 1
+    timings = []
+    t = 0.0
+    for seg in segments:
+        seg_len = duration * max(len(seg.get("text", "")), 1) / total_len
+        seg_len = min(seg_len, duration - t)
+        if seg_len <= 0:
+            continue
+        timings.append((t, seg_len, seg))
+        t += seg_len
+    return timings
+
+
+def _load_subtitle_clips(duration: float, segments: list[dict] | None = None):
+    """Creeaza subtitrari pentru narator, sincronizate cu segmentele scenariului."""
+    sub_cfg = CONFIG["subtitles"]
+    if not sub_cfg.get("enabled") or not segments:
+        return []
+
+    width = CONFIG["video"]["width"]
+    height = CONFIG["video"]["height"]
+    clips = []
+
+    for start, seg_len, seg in _segment_timings(duration, segments):
+        text = seg.get("text", "").strip()
+        if not text:
+            continue
+
+        clip = (
+            TextClip(
+                text,
+                fontsize=sub_cfg["font_size"],
+                color=sub_cfg["color"],
+                font=sub_cfg["font"],
+                method="caption",
+                size=(int(width * 0.9), None),
+                align="center",
+                stroke_color=sub_cfg["stroke_color"],
+                stroke_width=sub_cfg["stroke_width"],
+            )
+            .set_duration(seg_len)
+            .set_start(start)
+            .set_position(("center", int(height * sub_cfg["position_y_ratio"])))
+        )
+        clips.append(clip)
+
+    return clips
+
+
 def _load_character_clips(duration: float, segments: list[dict] | None = None):
     """Creeaza clipuri cu personajul PNG, schimband expresia in functie de segmentele scenariului.
 
@@ -61,14 +113,7 @@ def _load_character_clips(duration: float, segments: list[dict] | None = None):
     clips = []
 
     if segments:
-        total_len = sum(max(len(seg.get("text", "")), 1) for seg in segments) or 1
-        t = 0.0
-        for seg in segments:
-            seg_len = duration * max(len(seg.get("text", "")), 1) / total_len
-            seg_len = min(seg_len, duration - t)
-            if seg_len <= 0:
-                continue
-
+        for start, seg_len, seg in _segment_timings(duration, segments):
             file_name = files_by_name.get(seg.get("expresie"), default_file)
             img_path = chars_dir / file_name
 
@@ -77,10 +122,9 @@ def _load_character_clips(duration: float, segments: list[dict] | None = None):
                 .set_duration(seg_len)
                 .resize(width=int(width * scale))
                 .set_position(("center", "bottom"))
-                .set_start(t)
+                .set_start(start)
             )
             clips.append(clip)
-            t += seg_len
 
         return clips
 
@@ -140,10 +184,11 @@ def build_video(voice_over_path: Path, output_path: Path, segments: list[dict] |
 
     background = _load_background(duration)
     character_clips = _load_character_clips(duration, segments)
+    subtitle_clips = _load_subtitle_clips(duration, segments)
     audio = _build_audio(voice_over_path, duration)
 
     final = CompositeVideoClip(
-        [background, *character_clips], size=(width, height)
+        [background, *character_clips, *subtitle_clips], size=(width, height)
     ).set_duration(duration).set_audio(audio)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)

@@ -28,12 +28,21 @@ character:
     - name: "laughing"
       file: "laughing.png"
   # Pozitie si scalare implicita pe canvas (procent din latime/inaltime)
-  default_scale: 0.9
+  default_scale: 1.0
   default_position: ["center", "bottom"]
 
 background:
   assets_dir: "assets/backgrounds"
   default: "cabin_horror_1.png"
+
+subtitles:
+  enabled: true
+  font: "DejaVu-Sans-Bold"
+  font_size: 64
+  color: "white"
+  stroke_color: "black"
+  stroke_width: 3
+  position_y_ratio: 0.10
 
 audio:
   music_dir: "assets/music"
