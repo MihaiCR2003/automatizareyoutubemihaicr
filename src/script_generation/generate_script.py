@@ -93,6 +93,7 @@ def generate_script(topic: str, context: str = "") -> dict:
         "generationConfig": {
             "temperature": 0.8,
             "maxOutputTokens": CONFIG["script_generation"]["max_tokens"],
+            "thinkingConfig": {"thinkingBudget": 0},
         },
     }
 
@@ -138,8 +139,8 @@ def _parse_script_response(text: str, fallback_topic: str) -> dict:
                     {"text": parsed.get("voice_over", ""), "expresie": "neutral"}
                 ]
             return parsed
-        except json.JSONDecodeError:
-            pass
+        except json.JSONDecodeError as exc:
+            print(f"Nu am putut parsa JSON-ul de la Gemini ({exc}). Raspuns brut:\n{text}")
 
     return {
         "titlu": fallback_topic,
