@@ -11,6 +11,9 @@ from src.config import CONFIG, env
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
+INTRO_TEMPLATE = "Salutare prieteni, astazi discutam despre {titlu}, si sper sa va placa, hai sa incepem!"
+
+
 EXPRESII_DISPONIBILE = [
     "neutral",
     "smile",
@@ -43,6 +46,10 @@ def _build_prompt(topic: str, context: str = "") -> str:
         f"\n\nVoice-over-ul trebuie sa dureze in jur de {target_seconds} de secunde "
         "(aproximativ 1.8-2 cuvinte/secunda in limba romana, deci aproximativ "
         f"{int(target_seconds * 1.9)} de cuvinte in total). "
+        "\n\nIMPORTANT: NU include nicio introducere/salut la inceput (acestea sunt adaugate "
+        "separat de sistem) si NU pronunta in voice_over cuvinte ca \"titlu\", \"json\", "
+        "\"descriere\", \"tags\" sau alte denumiri tehnice - voice_over-ul trebuie sa fie "
+        "doar continutul povestii, natural, ca si cum ar vorbi un om real."
         "\n\nStructura narativa OBLIGATORIE pentru a maximiza retentia: "
         "1) HOOK (primele 3-5 secunde) - o intrebare provocatoare, un fapt soc sau o promisiune "
         "care creeaza curiozitate imediata, fara introduceri plictisitoare; "
@@ -102,7 +109,20 @@ def generate_script(topic: str, context: str = "") -> dict:
 
     generated_text = result["candidates"][0]["content"]["parts"][0]["text"]
 
-    return _parse_script_response(generated_text, fallback_topic=topic)
+    script = _parse_script_response(generated_text, fallback_topic=topic)
+    return _prepend_intro(script)
+
+
+def _prepend_intro(script: dict) -> dict:
+    """Adauga un intro fix, presetat, la inceputul voice-over-ului si segmentelor."""
+    intro_text = INTRO_TEMPLATE.format(titlu=script["titlu"])
+
+    script["voice_over"] = f"{intro_text} {script['voice_over']}"
+    script["segments"] = [
+        {"text": intro_text, "expresie": "smile"},
+        *script["segments"],
+    ]
+    return script
 
 
 def _parse_script_response(text: str, fallback_topic: str) -> dict:
