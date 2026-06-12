@@ -43,18 +43,48 @@ def _load_background(duration: float):
     return clip
 
 
-def _load_character_clips(duration: float):
-    """Creeaza clipuri cu personajul PNG, schimband pozitia/expresia periodic."""
+def _load_character_clips(duration: float, segments: list[dict] | None = None):
+    """Creeaza clipuri cu personajul PNG, schimband expresia in functie de segmentele scenariului.
+
+    Daca `segments` este furnizat (lista de {text, expresie}), durata fiecarei expresii
+    este proportionala cu lungimea textului segmentului respectiv. Altfel, alterneaza
+    expresii aleatorii la fiecare 4 secunde.
+    """
     width = CONFIG["video"]["width"]
-    height = CONFIG["video"]["height"]
     char_cfg = CONFIG["character"]
     chars_dir = path_from_root(char_cfg["assets_dir"])
     scale = char_cfg["default_scale"]
-
     positions = char_cfg["positions"]
-    segment_duration = 4.0  # secunde intre schimbari de poza
+    files_by_name = {p["name"]: p["file"] for p in positions}
+    default_file = positions[0]["file"]
+
     clips = []
 
+    if segments:
+        total_len = sum(max(len(seg.get("text", "")), 1) for seg in segments) or 1
+        t = 0.0
+        for seg in segments:
+            seg_len = duration * max(len(seg.get("text", "")), 1) / total_len
+            seg_len = min(seg_len, duration - t)
+            if seg_len <= 0:
+                continue
+
+            file_name = files_by_name.get(seg.get("expresie"), default_file)
+            img_path = chars_dir / file_name
+
+            clip = (
+                ImageClip(str(img_path))
+                .set_duration(seg_len)
+                .resize(width=int(width * scale))
+                .set_position(("center", "bottom"))
+                .set_start(t)
+            )
+            clips.append(clip)
+            t += seg_len
+
+        return clips
+
+    segment_duration = 4.0  # secunde intre schimbari de poza
     t = 0.0
     while t < duration:
         pos_cfg = random.choice(positions)
@@ -97,7 +127,7 @@ def _build_audio(voice_path: Path, duration: float):
     return CompositeAudioClip([music_clip, voice_clip])
 
 
-def build_video(voice_over_path: Path, output_path: Path) -> Path:
+def build_video(voice_over_path: Path, output_path: Path, segments: list[dict] | None = None) -> Path:
     """Construieste videoclipul final 1080x1920 si il salveaza la output_path."""
     width = CONFIG["video"]["width"]
     height = CONFIG["video"]["height"]
@@ -109,7 +139,7 @@ def build_video(voice_over_path: Path, output_path: Path) -> Path:
     voice_clip.close()
 
     background = _load_background(duration)
-    character_clips = _load_character_clips(duration)
+    character_clips = _load_character_clips(duration, segments)
     audio = _build_audio(voice_over_path, duration)
 
     final = CompositeVideoClip(

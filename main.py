@@ -38,7 +38,7 @@ def run_pipeline(topic: str | None = None) -> str:
     generate_voice_over(script["voice_over"], voice_path)
 
     video_path = output_dir / "video.mp4"
-    build_video(voice_path, video_path)
+    build_video(voice_path, video_path, segments=script.get("segments"))
 
     thumbnail_path = output_dir / "thumbnail.jpg"
     generate_thumbnail(script["titlu"], thumbnail_path)

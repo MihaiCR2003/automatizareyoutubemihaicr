@@ -11,15 +11,35 @@ from src.config import CONFIG, env
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
+EXPRESII_DISPONIBILE = [
+    "neutral",
+    "smile",
+    "pointing",
+    "explaining",
+    "thinking",
+    "surprised",
+    "scared",
+    "laughing",
+]
+
+
 def _build_prompt(topic: str) -> str:
     max_tokens = CONFIG["script_generation"]["max_tokens"]
+    expresii = ", ".join(EXPRESII_DISPONIBILE)
     return (
         "Esti un scenarist pentru YouTube Shorts in limba romana. "
         f"Scrie un scenariu scurt, captivant, despre subiectul: \"{topic}\". "
         "Scenariul trebuie sa contina: un titlu atractiv, o descriere scurta pentru YouTube, "
         "5-8 tag-uri relevante, si textul de voice-over (maxim 60 de secunde de vorbire, "
-        "stil natural, conversational). "
-        "Raspunde STRICT in format JSON cu cheile: titlu, descriere, tags, voice_over."
+        "stil natural, conversational), impartit in segmente. "
+        "Fiecare segment are propriul text si o expresie faciala pentru personaj, "
+        f"aleasa STRICT din lista: {expresii}. "
+        "Alege expresia in functie de continutul segmentului "
+        "(ex: 'scared' pentru momente infricosatoare/tensionate, 'surprised' pentru o revelatie, "
+        "'laughing' pentru ceva amuzant, 'explaining'/'thinking' pentru informatii, "
+        "'pointing' pentru a atrage atentia, 'smile'/'neutral' pentru introducere/incheiere). "
+        "Raspunde STRICT in format JSON cu cheile: titlu, descriere, tags, voice_over, "
+        "segments (lista de obiecte cu cheile: text, expresie)."
         f" Limiteaza raspunsul la aproximativ {max_tokens} tokeni."
     )
 
@@ -65,7 +85,12 @@ def _parse_script_response(text: str, fallback_topic: str) -> dict:
 
     if start != -1 and end != -1:
         try:
-            return json.loads(text[start : end + 1])
+            parsed = json.loads(text[start : end + 1])
+            if not parsed.get("segments"):
+                parsed["segments"] = [
+                    {"text": parsed.get("voice_over", ""), "expresie": "neutral"}
+                ]
+            return parsed
         except json.JSONDecodeError:
             pass
 
@@ -74,6 +99,7 @@ def _parse_script_response(text: str, fallback_topic: str) -> dict:
         "descriere": f"Un video despre {fallback_topic}.",
         "tags": [fallback_topic],
         "voice_over": text.strip(),
+        "segments": [{"text": text.strip(), "expresie": "neutral"}],
     }
 
 
