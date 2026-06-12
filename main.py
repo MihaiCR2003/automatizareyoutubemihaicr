@@ -67,7 +67,8 @@ def run_pipeline(topic: str | None = None) -> str:
                 f"Foloseste /approve {run_id} sau /reject {run_id}."
             )
         else:
-            approve_and_upload(run_id)
+            url = approve_and_upload(run_id)
+            notifier.send_message(f"Videoclipul {run_id} a fost postat pe YouTube:\n{url}")
 
     return run_id
 
