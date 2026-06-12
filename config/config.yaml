@@ -40,6 +40,7 @@ subtitles:
   font: "DejaVu-Sans-Bold"
   font_size: 64
   color: "white"
+  highlight_color: "#FFD400"
   stroke_color: "black"
   stroke_width: 3
   position_y_ratio: 0.10
@@ -53,6 +54,9 @@ tts:
   provider: "edge_tts"
   language: "ro"
   voice: "ro-RO-EmilNeural"
+  voices:
+    - "ro-RO-EmilNeural"
+    - "ro-RO-AlinaNeural"
   rate: "+2%"
   pitch: "+5Hz"
 

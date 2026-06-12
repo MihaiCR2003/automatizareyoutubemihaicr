@@ -6,7 +6,7 @@ import random
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 from moviepy.editor import (
     AudioFileClip,
@@ -43,12 +43,21 @@ def _apply_zoom(clip, duration: float, width: int, height: int, zoom_in: bool):
     return clip.fl(transform)
 
 
+def _pick_background_file() -> Path:
+    """Alege aleator un fundal dintre toate imaginile/video-urile disponibile (varietate intre videoclipuri)."""
+    bg_dir = path_from_root(CONFIG["background"]["assets_dir"])
+    valid_exts = {".png", ".jpg", ".jpeg", ".mp4", ".mov", ".webm"}
+    candidates = [p for p in bg_dir.iterdir() if p.suffix.lower() in valid_exts]
+    if candidates:
+        return random.choice(candidates)
+    return bg_dir / CONFIG["background"]["default"]
+
+
 def _load_background(duration: float):
     """Incarca fundalul (video sau imagine), redimensionat la 1080x1920, cu efect de zoom."""
     width = CONFIG["video"]["width"]
     height = CONFIG["video"]["height"]
-    bg_dir = path_from_root(CONFIG["background"]["assets_dir"])
-    bg_file = bg_dir / CONFIG["background"]["default"]
+    bg_file = _pick_background_file()
 
     if bg_file.suffix.lower() in {".mp4", ".mov", ".webm"}:
         clip = VideoFileClip(str(bg_file))
@@ -104,38 +113,145 @@ def _segment_timings(duration: float, segments: list[dict]) -> list[tuple[float,
     return timings
 
 
+def _load_caption_font(size: int):
+    for font_path in ("arialbd.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"):
+        try:
+            return ImageFont.truetype(font_path, size)
+        except OSError:
+            continue
+    return ImageFont.load_default()
+
+
+def _layout_caption_words(words_text: list[str], font, max_width: int):
+    """Calculeaza pozitia fiecarui cuvant (impachetate pe linii, centrate) si dimensiunea canvas-ului."""
+    dummy = Image.new("RGBA", (10, 10))
+    draw = ImageDraw.Draw(dummy)
+    space_w = draw.textlength(" ", font=font)
+
+    lines: list[list[tuple[str, float]]] = []
+    current: list[tuple[str, float]] = []
+    current_width = 0.0
+
+    for word in words_text:
+        w = draw.textlength(word, font=font)
+        extra = w if not current else w + space_w
+        if current and current_width + extra > max_width:
+            lines.append(current)
+            current = []
+            current_width = 0.0
+            extra = w
+        current.append((word, w))
+        current_width += extra
+
+    if current:
+        lines.append(current)
+
+    ascent, descent = font.getmetrics()
+    line_height = ascent + descent + 14
+    padding = 10
+
+    layout = []
+    idx = 0
+    for line_idx, line in enumerate(lines):
+        total_width = sum(w for _, w in line) + space_w * (len(line) - 1)
+        x = max((max_width - total_width) / 2, 0)
+        y = padding + line_idx * line_height
+        for word, w in line:
+            layout.append({"index": idx, "word": word, "x": x, "y": y})
+            x += w + space_w
+            idx += 1
+
+    canvas_size = (int(max_width), int(len(lines) * line_height + 2 * padding))
+    return layout, canvas_size
+
+
+def _render_caption_frame(layout, canvas_size, active_index: int, font, color, highlight_color, stroke_color, stroke_width):
+    img = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    for item in layout:
+        fill = highlight_color if item["index"] == active_index else color
+        draw.text(
+            (item["x"], item["y"]),
+            item["word"],
+            font=font,
+            fill=fill,
+            stroke_width=stroke_width,
+            stroke_fill=stroke_color,
+        )
+    return np.array(img)
+
+
 def _load_subtitle_clips(duration: float, segments: list[dict] | None = None):
-    """Creeaza subtitrari pentru narator, sincronizate cu segmentele scenariului."""
+    """Creeaza subtitrari tip 'karaoke' (cuvant cu cuvant evidentiat), sincronizate cu vocea."""
     sub_cfg = CONFIG["subtitles"]
     if not sub_cfg.get("enabled") or not segments:
         return []
 
     width = CONFIG["video"]["width"]
     height = CONFIG["video"]["height"]
+    max_width = int(width * 0.9)
+    base_font_size = sub_cfg["font_size"]
+    color = sub_cfg["color"]
+    highlight_color = sub_cfg.get("highlight_color", "#FFD400")
+    stroke_color = sub_cfg["stroke_color"]
+    stroke_width = sub_cfg["stroke_width"]
+    position_y = int(height * sub_cfg["position_y_ratio"])
+
     clips = []
 
-    for start, seg_len, seg in _segment_timings(duration, segments):
+    for seg_index, (start, seg_len, seg) in enumerate(_segment_timings(duration, segments)):
         text = seg.get("text", "").strip()
         if not text:
             continue
 
-        clip = (
-            TextClip(
-                text,
-                fontsize=sub_cfg["font_size"],
-                color=sub_cfg["color"],
-                font=sub_cfg["font"],
-                method="caption",
-                size=(int(width * 0.9), None),
-                align="center",
-                stroke_color=sub_cfg["stroke_color"],
-                stroke_width=sub_cfg["stroke_width"],
+        words = seg.get("words")
+        if not words:
+            clip = (
+                TextClip(
+                    text,
+                    fontsize=base_font_size,
+                    color=color,
+                    font=sub_cfg["font"],
+                    method="caption",
+                    size=(max_width, None),
+                    align="center",
+                    stroke_color=stroke_color,
+                    stroke_width=stroke_width,
+                )
+                .set_duration(seg_len)
+                .set_start(start)
+                .set_position(("center", position_y))
             )
-            .set_duration(seg_len)
-            .set_start(start)
-            .set_position(("center", int(height * sub_cfg["position_y_ratio"])))
-        )
-        clips.append(clip)
+            clips.append(clip)
+            continue
+
+        # Segmentul "hook" (primul dupa intro) e accentuat cu un font mai mare.
+        font_size = int(base_font_size * 1.25) if seg_index == 1 else base_font_size
+        font = _load_caption_font(font_size)
+
+        words_text = [w["text"] for w in words]
+        layout, canvas_size = _layout_caption_words(words_text, font, max_width)
+
+        for word_idx, w in enumerate(words):
+            w_start = w["start"]
+            if w_start >= start + seg_len:
+                break
+
+            next_start = words[word_idx + 1]["start"] if word_idx + 1 < len(words) else start + seg_len
+            w_dur = min(next_start, start + seg_len) - w_start
+            if w_dur <= 0:
+                continue
+
+            frame = _render_caption_frame(
+                layout, canvas_size, word_idx, font, color, highlight_color, stroke_color, stroke_width
+            )
+            clip = (
+                ImageClip(frame)
+                .set_duration(w_dur)
+                .set_start(w_start)
+                .set_position(("center", position_y))
+            )
+            clips.append(clip)
 
     return clips
 
