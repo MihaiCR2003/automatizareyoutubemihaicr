@@ -54,11 +54,21 @@ tts:
   provider: "edge_tts"
   language: "ro"
   voice: "ro-RO-EmilNeural"
+  voice_en: "en-US-AndrewNeural"
+  # Perechi voce romana / voce engleza (pentru cuvinte, nume sau termeni in
+  # limba engleza marcati in script cu ~asa~, pronuntate cu o voce nativa
+  # engleza pentru acuratete maxima).
   voices:
-    - "ro-RO-EmilNeural"
-    - "ro-RO-AlinaNeural"
+    - ro: "ro-RO-EmilNeural"
+      en: "en-US-AndrewNeural"
+    - ro: "ro-RO-AlinaNeural"
+      en: "en-US-AvaNeural"
   rate: "+2%"
   pitch: "+5Hz"
+  # Variatie aleatoare per segment, pentru o voce mai naturala/umana
+  # (nu identica monoton de la un segment la altul).
+  rate_jitter: 3
+  pitch_jitter: 4
 
 script_generation:
   provider: "gemini"
