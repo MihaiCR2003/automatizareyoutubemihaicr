@@ -57,14 +57,15 @@ tts:
   voice_en: "en-US-AndrewNeural"
   # Perechi voce romana / voce engleza (pentru cuvinte, nume sau termeni in
   # limba engleza marcati in script cu ~asa~, pronuntate cu o voce nativa
-  # engleza pentru acuratete maxima).
+  # engleza pentru acuratete maxima). Doar voci masculine, pentru a se
+  # potrivi cu personajul nostru (viking) - voce groasa, dar inteligibila.
   voices:
     - ro: "ro-RO-EmilNeural"
       en: "en-US-AndrewNeural"
-    - ro: "ro-RO-AlinaNeural"
-      en: "en-US-AvaNeural"
-  rate: "+2%"
-  pitch: "+5Hz"
+    - ro: "ro-RO-EmilNeural"
+      en: "en-US-GuyNeural"
+  rate: "+0%"
+  pitch: "-15Hz"
   # Variatie aleatoare per segment, pentru o voce mai naturala/umana
   # (nu identica monoton de la un segment la altul).
   rate_jitter: 3
