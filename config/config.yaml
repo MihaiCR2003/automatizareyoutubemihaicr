@@ -54,16 +54,11 @@ tts:
   provider: "edge_tts"
   language: "ro"
   voice: "ro-RO-EmilNeural"
-  voice_en: "en-US-AndrewNeural"
-  # Perechi voce romana / voce engleza (pentru cuvinte, nume sau termeni in
-  # limba engleza marcati in script cu ~asa~, pronuntate cu o voce nativa
-  # engleza pentru acuratete maxima). Doar voci masculine, pentru a se
-  # potrivi cu personajul nostru (viking) - voce groasa, dar inteligibila.
+  # O singura voce (masculina, groasa - vikingul nostru) pentru tot textul,
+  # romana si engleza deopotriva. Cuvintele/numele straine sunt scrise fonetic
+  # in scenariu (vezi instructiunile de pronuntie), nu schimbate de voce.
   voices:
-    - ro: "ro-RO-EmilNeural"
-      en: "en-US-AndrewNeural"
-    - ro: "ro-RO-EmilNeural"
-      en: "en-US-GuyNeural"
+    - "ro-RO-EmilNeural"
   rate: "+0%"
   pitch: "-15Hz"
   # Variatie aleatoare per segment, pentru o voce mai naturala/umana
