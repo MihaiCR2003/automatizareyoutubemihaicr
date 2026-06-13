@@ -77,7 +77,7 @@ scheduling:
 
 youtube:
   category_id: "22"  # People & Blogs
-  privacy_status: "private"  # private | unlisted | public
+  privacy_status: "public"  # private | unlisted | public
   default_tags:
     - "shorts"
     - "trending"
