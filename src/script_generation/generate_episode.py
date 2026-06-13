@@ -162,14 +162,45 @@ def generate_episode(state: dict | None) -> dict:
     generated_text = _call_gemini(prompt, max_tokens)
     script = _extract_json(generated_text)
 
-    if not script.get("segments"):
-        script["segments"] = [{"text": script.get("voice_over", ""), "expresie": "neutral"}]
+    script["voice_over"] = _as_text(script.get("voice_over", ""))
+    script["segments"] = _normalize_segments(script.get("segments"))
+
+    if not script["segments"]:
+        script["segments"] = [{"text": script["voice_over"], "expresie": "neutral"}]
 
     script.setdefault("titlu_episod", f"Episodul {episode_number}")
     script.setdefault("descriere", "")
     script.setdefault("tags", [])
-    script.setdefault("voice_over", "")
     script.setdefault("memorie", (state or {}).get("memorie", ""))
 
     script["episode_number"] = episode_number
     return script
+
+
+def _as_text(value) -> str:
+    """Converteste valoarea intr-un text simplu (Gemini poate intoarce ocazional liste de fraze)."""
+    if isinstance(value, list):
+        return " ".join(_as_text(v) for v in value)
+    if value is None:
+        return ""
+    return str(value)
+
+
+def _normalize_segments(segments) -> list[dict]:
+    """Aduce segmentele la forma {text: str, expresie: str}, indiferent de variatiile JSON-ului Gemini."""
+    if not isinstance(segments, list):
+        return []
+
+    normalized = []
+    for seg in segments:
+        if isinstance(seg, dict):
+            text = _as_text(seg.get("text", "")).strip()
+            expresie = seg.get("expresie") if seg.get("expresie") in EXPRESII_DISPONIBILE else "neutral"
+        else:
+            text = _as_text(seg).strip()
+            expresie = "neutral"
+
+        if text:
+            normalized.append({"text": text, "expresie": expresie})
+
+    return normalized
