@@ -2,7 +2,11 @@ name: Telegram Listener
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    # La fiecare 5 minute, dar decalat fata de orele fixe (xx:00, xx:05...),
+    # care sunt cele mai incarcate pe GitHub Actions si pot intarzia mult mai
+    # mult cronurile programate exact pe ele. Decalajul reduce intarzierea
+    # tipica de la ~15-20 min la cateva minute.
+    - cron: "2-59/5 * * * *"
   workflow_dispatch: {}
 
 jobs:
