@@ -13,31 +13,7 @@ from src.trending.get_trends import get_trending_topics_with_context
 from src.tts.voice_over import generate_voice_over_segments
 from src.upload.youtube_upload import upload_video
 from src.video.compositor import build_video
-from src.video.thumbnail import generate_thumbnail
-
-
-_THUMBNAIL_EXPRESSION_PRIORITY = [
-    "surprised",
-    "scared",
-    "pointing",
-    "laughing",
-    "explaining",
-    "thinking",
-    "smile",
-    "neutral",
-]
-
-
-def _pick_thumbnail_character(segments: list[dict]) -> str | None:
-    """Alege imaginea personajului pentru thumbnail, preferand expresia cu cel mai mare impact."""
-    files_by_name = {p["name"]: p["file"] for p in CONFIG["character"]["positions"]}
-    expresii_prezente = {seg.get("expresie") for seg in segments}
-
-    for expresie in _THUMBNAIL_EXPRESSION_PRIORITY:
-        if expresie in expresii_prezente:
-            return files_by_name.get(expresie)
-
-    return None
+from src.video.thumbnail import generate_thumbnail, pick_thumbnail_character
 
 
 def run_pipeline(topic: str | None = None) -> str:
@@ -68,7 +44,7 @@ def run_pipeline(topic: str | None = None) -> str:
     build_video(voice_path, video_path, segments=timed_segments)
 
     thumbnail_path = output_dir / "thumbnail.jpg"
-    generate_thumbnail(script["titlu"], thumbnail_path, character_image=_pick_thumbnail_character(timed_segments))
+    generate_thumbnail(script["titlu"], thumbnail_path, character_image=pick_thumbnail_character(timed_segments))
 
     status = "pending_approval" if CONFIG["telegram"]["require_approval_before_upload"] else "ready_to_upload"
 

@@ -98,3 +98,27 @@ telegram:
   notify_on_start: true
   notify_on_finish: true
   require_approval_before_upload: false
+
+# Serial narativ pe episoade (videoclipuri lungi, orizontale, 16:9).
+# Continuitatea (memoria povestii) este salvata in baza de date (tabela "runs",
+# folosita generic) intre episoade, astfel incat fiecare episod nou continua
+# direct din finalul celui precedent.
+series:
+  enabled: true
+  slug: "saga-vikingilor"
+  genre: "actiune, drama si horror nordic, cu cliffhanger-uri puternice la final de episod"
+  total_episodes: 100
+  output_dir: "output/series"
+  video:
+    width: 1920
+    height: 1080
+    fps: 30
+    # Pornim cu 10 minute pentru a testa timpii de generare/randare;
+    # poate fi crescut spre 1800 (30 minute) ulterior.
+    max_duration_seconds: 600
+  # Personajul (vikingul narator) e mai mic si pozitionat in colt, pentru
+  # a nu acoperi scena pe un cadru orizontal.
+  character_scale: 0.45
+  character_position: ["right", "bottom"]
+  script_generation:
+    max_tokens: 8192

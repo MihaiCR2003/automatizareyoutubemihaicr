@@ -53,10 +53,8 @@ def _pick_background_file() -> Path:
     return bg_dir / CONFIG["background"]["default"]
 
 
-def _load_background(duration: float):
-    """Incarca fundalul (video sau imagine), redimensionat la 1080x1920, cu efect de zoom."""
-    width = CONFIG["video"]["width"]
-    height = CONFIG["video"]["height"]
+def _load_background(duration: float, width: int, height: int):
+    """Incarca fundalul (video sau imagine), redimensionat la width x height, cu efect de zoom."""
     bg_file = _pick_background_file()
 
     if bg_file.suffix.lower() in {".mp4", ".mov", ".webm"}:
@@ -181,14 +179,12 @@ def _render_caption_frame(layout, canvas_size, active_index: int, font, color, h
     return np.array(img)
 
 
-def _load_subtitle_clips(duration: float, segments: list[dict] | None = None):
+def _load_subtitle_clips(duration: float, width: int, height: int, segments: list[dict] | None = None):
     """Creeaza subtitrari tip 'karaoke' (cuvant cu cuvant evidentiat), sincronizate cu vocea."""
     sub_cfg = CONFIG["subtitles"]
     if not sub_cfg.get("enabled") or not segments:
         return []
 
-    width = CONFIG["video"]["width"]
-    height = CONFIG["video"]["height"]
     max_width = int(width * 0.9)
     base_font_size = sub_cfg["font_size"]
     color = sub_cfg["color"]
@@ -256,17 +252,16 @@ def _load_subtitle_clips(duration: float, segments: list[dict] | None = None):
     return clips
 
 
-def _load_character_clips(duration: float, segments: list[dict] | None = None):
+def _load_character_clips(duration: float, width: int, char_cfg: dict, segments: list[dict] | None = None):
     """Creeaza clipuri cu personajul PNG, schimband expresia in functie de segmentele scenariului.
 
     Daca `segments` este furnizat (lista de {text, expresie}), durata fiecarei expresii
     este proportionala cu lungimea textului segmentului respectiv. Altfel, alterneaza
     expresii aleatorii la fiecare 4 secunde.
     """
-    width = CONFIG["video"]["width"]
-    char_cfg = CONFIG["character"]
     chars_dir = path_from_root(char_cfg["assets_dir"])
     scale = char_cfg["default_scale"]
+    position = tuple(char_cfg["default_position"])
     positions = char_cfg["positions"]
     files_by_name = {p["name"]: p["file"] for p in positions}
     default_file = positions[0]["file"]
@@ -282,7 +277,7 @@ def _load_character_clips(duration: float, segments: list[dict] | None = None):
                 ImageClip(str(img_path))
                 .set_duration(seg_len)
                 .resize(width=int(width * scale))
-                .set_position(("center", "bottom"))
+                .set_position(position)
                 .set_start(start)
             )
             clips.append(clip)
@@ -300,7 +295,7 @@ def _load_character_clips(duration: float, segments: list[dict] | None = None):
             ImageClip(str(img_path))
             .set_duration(seg_len)
             .resize(width=int(width * scale))
-            .set_position(("center", "bottom"))
+            .set_position(position)
             .set_start(t)
         )
         clips.append(clip)
@@ -332,20 +327,35 @@ def _build_audio(voice_path: Path, duration: float):
     return CompositeAudioClip([music_clip, voice_clip])
 
 
-def build_video(voice_over_path: Path, output_path: Path, segments: list[dict] | None = None) -> Path:
-    """Construieste videoclipul final 1080x1920 si il salveaza la output_path."""
-    width = CONFIG["video"]["width"]
-    height = CONFIG["video"]["height"]
-    fps = CONFIG["video"]["fps"]
-    max_duration = CONFIG["video"]["max_duration_seconds"]
+def build_video(
+    voice_over_path: Path,
+    output_path: Path,
+    segments: list[dict] | None = None,
+    video_cfg: dict | None = None,
+    character_cfg: dict | None = None,
+) -> Path:
+    """Construieste videoclipul final si il salveaza la output_path.
+
+    `video_cfg` (width, height, fps, max_duration_seconds) si `character_cfg`
+    (assets_dir, positions, default_scale, default_position) pot fi date
+    pentru a genera videoclipuri cu alta rezolutie/aspect (ex: serialul
+    orizontal 1920x1080), altfel se folosesc valorile implicite din config.yaml.
+    """
+    video_cfg = video_cfg or CONFIG["video"]
+    character_cfg = character_cfg or CONFIG["character"]
+
+    width = video_cfg["width"]
+    height = video_cfg["height"]
+    fps = video_cfg["fps"]
+    max_duration = video_cfg["max_duration_seconds"]
 
     voice_clip = AudioFileClip(str(voice_over_path))
     duration = min(voice_clip.duration, max_duration)
     voice_clip.close()
 
-    background = _load_background(duration)
-    character_clips = _load_character_clips(duration, segments)
-    subtitle_clips = _load_subtitle_clips(duration, segments)
+    background = _load_background(duration, width, height)
+    character_clips = _load_character_clips(duration, width, character_cfg, segments)
+    subtitle_clips = _load_subtitle_clips(duration, width, height, segments)
     audio = _build_audio(voice_over_path, duration)
 
     final = CompositeVideoClip(

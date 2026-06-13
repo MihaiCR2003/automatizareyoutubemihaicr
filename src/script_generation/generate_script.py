@@ -77,22 +77,14 @@ def _build_candidates_prompt(candidates: list[dict]) -> str:
     )
 
 
-def _script_instructions() -> str:
-    max_tokens = CONFIG["script_generation"]["max_tokens"]
-    target_seconds = CONFIG["video"]["max_duration_seconds"]
-    expresii = ", ".join(EXPRESII_DISPONIBILE)
-
+def _pronunciation_and_diction_instructions(tone_description: str) -> str:
+    """Reguli comune de limba/pronuntie/punctuatie, reutilizate de toate tipurile de scenarii."""
     return (
-        f"\n\nVoice-over-ul trebuie sa dureze in jur de {target_seconds} de secunde "
-        "(aproximativ 1.8-2 cuvinte/secunda in limba romana, deci aproximativ "
-        f"{int(target_seconds * 1.9)} de cuvinte in total). "
         "\n\nCERINTE DE LIMBA (FOARTE IMPORTANT): Scrie in limba romana literara, corecta "
         "gramatical, cu toate diacriticele corecte si consistente: ă, â, î, ș, ț "
         "(NU folosi s/t simple in locul lui ș/ț si NU folosi diacritice gresite gen ş/ţ cu virgula). "
-        "Foloseste un ton energic, vesel si entuziasmat - ca un narator de povesti/curiozitati "
-        "carismatic, care este sincer fascinat de ce povesteste, nu ca un robot care citeste "
-        "un raport. Verifica acuratetea informatiilor folosind contextul oferit, fara a inventa "
-        "detalii false."
+        f"Foloseste {tone_description} Verifica acuratetea informatiilor folosind contextul "
+        "oferit, fara a inventa detalii false."
         "\n\nPUNCTUATIE PENTRU O VOCE NATURALA (FOARTE IMPORTANT, text-to-speech): "
         "fiecare propozitie TREBUIE sa se termine cu semnul de punctuatie corect "
         "(punct, semn de intrebare sau semn de exclamare) - aceste semne controleaza direct "
@@ -119,7 +111,24 @@ def _script_instructions() -> str:
         "separat de sistem) si NU pronunta in voice_over cuvinte ca \"titlu\", \"json\", "
         "\"descriere\", \"tags\" sau alte denumiri tehnice - voice_over-ul trebuie sa fie "
         "doar continutul povestii, natural, ca si cum ar vorbi un om real."
-        "\n\nStructura narativa OBLIGATORIE pentru a maximiza retentia: "
+    )
+
+
+def _script_instructions() -> str:
+    max_tokens = CONFIG["script_generation"]["max_tokens"]
+    target_seconds = CONFIG["video"]["max_duration_seconds"]
+    expresii = ", ".join(EXPRESII_DISPONIBILE)
+
+    return (
+        f"\n\nVoice-over-ul trebuie sa dureze in jur de {target_seconds} de secunde "
+        "(aproximativ 1.8-2 cuvinte/secunda in limba romana, deci aproximativ "
+        f"{int(target_seconds * 1.9)} de cuvinte in total). "
+        + _pronunciation_and_diction_instructions(
+            "un ton energic, vesel si entuziasmat - ca un narator de povesti/curiozitati "
+            "carismatic, care este sincer fascinat de ce povesteste, nu ca un robot care citeste "
+            "un raport."
+        )
+        + "\n\nStructura narativa OBLIGATORIE pentru a maximiza retentia: "
         "1) HOOK (primele 3-5 secunde) - o intrebare provocatoare, un fapt soc sau o promisiune "
         "care creeaza curiozitate imediata, fara introduceri plictisitoare; "
         "2) BUILD-UP - dezvolta contextul si creste tensiunea/curiozitatea treptat, "
@@ -175,8 +184,8 @@ def _script_instructions() -> str:
     )
 
 
-def generate_script(topic: str, context: str = "") -> dict:
-    """Genereaza un dict cu titlu, descriere, tags si voice_over pentru un subiect dat."""
+def _call_gemini(prompt: str, max_tokens: int) -> str:
+    """Apeleaza Gemini cu `prompt` si returneaza textul generat, cu retry pe erori temporare."""
     model = CONFIG["script_generation"]["model"]
     api_key = env("GEMINI_API_KEY")
 
@@ -186,10 +195,10 @@ def generate_script(topic: str, context: str = "") -> dict:
         )
 
     payload = {
-        "contents": [{"parts": [{"text": _build_prompt(topic, context)}]}],
+        "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "temperature": 0.8,
-            "maxOutputTokens": CONFIG["script_generation"]["max_tokens"],
+            "maxOutputTokens": max_tokens,
             "thinkingConfig": {"thinkingBudget": 0},
         },
     }
@@ -212,8 +221,13 @@ def generate_script(topic: str, context: str = "") -> dict:
         response.raise_for_status()
 
     result = response.json()
+    return result["candidates"][0]["content"]["parts"][0]["text"]
 
-    generated_text = result["candidates"][0]["content"]["parts"][0]["text"]
+
+def generate_script(topic: str, context: str = "") -> dict:
+    """Genereaza un dict cu titlu, descriere, tags si voice_over pentru un subiect dat."""
+    max_tokens = CONFIG["script_generation"]["max_tokens"]
+    generated_text = _call_gemini(_build_prompt(topic, context), max_tokens)
 
     script = _parse_script_response(generated_text, fallback_topic=topic)
     return _prepend_intro(script)
@@ -225,45 +239,10 @@ def generate_script_from_candidates(candidates: list[dict]) -> dict:
     `candidates` este o lista de dict-uri cu cheile: topic, context.
     Returneaza scriptul (cu cheile uzuale) plus cheia "subiect_ales" cu subiectul ales.
     """
-    model = CONFIG["script_generation"]["model"]
-    api_key = env("GEMINI_API_KEY")
-
-    if not api_key:
-        raise RuntimeError(
-            "GEMINI_API_KEY nu este setat (variabila de mediu este goala sau lipseste)."
-        )
-
-    payload = {
-        "contents": [{"parts": [{"text": _build_candidates_prompt(candidates)}]}],
-        "generationConfig": {
-            "temperature": 0.8,
-            "maxOutputTokens": CONFIG["script_generation"]["max_tokens"],
-            "thinkingConfig": {"thinkingBudget": 0},
-        },
-    }
-
+    max_tokens = CONFIG["script_generation"]["max_tokens"]
     fallback_topic = candidates[0]["topic"] if candidates else "Curiozitati interesante"
 
-    max_retries = 3
-    for attempt in range(1, max_retries + 1):
-        response = requests.post(
-            GEMINI_API_URL.format(model=model),
-            params={"key": api_key},
-            json=payload,
-            timeout=120,
-        )
-        if response.ok:
-            break
-
-        print(f"Gemini API error {response.status_code}: {response.text}")
-        if response.status_code in (429, 503) and attempt < max_retries:
-            time.sleep(10 * attempt)
-            continue
-        response.raise_for_status()
-
-    result = response.json()
-
-    generated_text = result["candidates"][0]["content"]["parts"][0]["text"]
+    generated_text = _call_gemini(_build_candidates_prompt(candidates), max_tokens)
 
     script = _parse_script_response(generated_text, fallback_topic=fallback_topic)
     script.setdefault("subiect_ales", fallback_topic)

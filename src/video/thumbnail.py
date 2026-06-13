@@ -22,20 +22,70 @@ _EMOJI_PATTERN = re.compile(
 )
 
 
+_THUMBNAIL_EXPRESSION_PRIORITY = [
+    "surprised",
+    "scared",
+    "pointing",
+    "laughing",
+    "explaining",
+    "thinking",
+    "smile",
+    "neutral",
+]
+
+
 def _strip_emojis(text: str) -> str:
     return _EMOJI_PATTERN.sub("", text).strip()
 
 
-def generate_thumbnail(title: str, output_path: Path, character_image: str | None = None) -> Path:
-    width = CONFIG["video"]["width"]
-    height = CONFIG["video"]["height"]
-    char_cfg = CONFIG["character"]
+def pick_thumbnail_character(segments: list[dict]) -> str | None:
+    """Alege imaginea personajului pentru thumbnail, preferand expresia cu cel mai mare impact."""
+    files_by_name = {p["name"]: p["file"] for p in CONFIG["character"]["positions"]}
+    expresii_prezente = {seg.get("expresie") for seg in segments}
+
+    for expresie in _THUMBNAIL_EXPRESSION_PRIORITY:
+        if expresie in expresii_prezente:
+            return files_by_name.get(expresie)
+
+    return None
+
+
+def _cover_resize(img: Image.Image, width: int, height: int) -> Image.Image:
+    """Redimensioneaza imaginea ca sa acopere width x height, cu crop centrat (fara distorsiune)."""
+    src_ratio = img.width / img.height
+    dst_ratio = width / height
+
+    if src_ratio > dst_ratio:
+        new_height = height
+        new_width = int(height * src_ratio)
+    else:
+        new_width = width
+        new_height = int(width / src_ratio)
+
+    img = img.resize((new_width, new_height))
+    left = (new_width - width) // 2
+    top = (new_height - height) // 2
+    return img.crop((left, top, left + width, top + height))
+
+
+def generate_thumbnail(
+    title: str,
+    output_path: Path,
+    character_image: str | None = None,
+    video_cfg: dict | None = None,
+    character_cfg: dict | None = None,
+) -> Path:
+    video_cfg = video_cfg or CONFIG["video"]
+    char_cfg = character_cfg or CONFIG["character"]
+
+    width = video_cfg["width"]
+    height = video_cfg["height"]
 
     bg_dir = path_from_root(CONFIG["background"]["assets_dir"])
     bg_candidates = list(bg_dir.glob("*.png")) + list(bg_dir.glob("*.jpg"))
 
     if bg_candidates:
-        canvas = Image.open(bg_candidates[0]).convert("RGBA").resize((width, height))
+        canvas = _cover_resize(Image.open(bg_candidates[0]).convert("RGBA"), width, height)
     else:
         canvas = Image.new("RGBA", (width, height), (20, 20, 30, 255))
 
@@ -48,9 +98,11 @@ def generate_thumbnail(title: str, output_path: Path, character_image: str | Non
     ratio = new_width / char_img.width
     char_img = char_img.resize((new_width, int(char_img.height * ratio)))
 
-    canvas.alpha_composite(
-        char_img, ((width - char_img.width) // 2, height - char_img.height)
-    )
+    h_pos, v_pos = char_cfg.get("default_position", ["center", "bottom"])
+    x = {"left": 0, "center": (width - char_img.width) // 2, "right": width - char_img.width}[h_pos]
+    y = {"top": 0, "center": (height - char_img.height) // 2, "bottom": height - char_img.height}[v_pos]
+
+    canvas.alpha_composite(char_img, (x, y))
 
     draw = ImageDraw.Draw(canvas)
     font = None
