@@ -1,6 +1,14 @@
 name: Series Episode Pipeline
 
 on:
+  schedule:
+    # Orele sunt calculate pentru Europe/Bucharest in EET (iarna, UTC+2).
+    # Vara (EEST, UTC+3) rularile vor avea loc cu o ora mai tarziu local -
+    # drift acceptat pentru un serviciu gratuit.
+    - cron: "0 8 * * *"   # ~10:00 Bucuresti
+    - cron: "0 12 * * *"  # ~14:00 Bucuresti
+    - cron: "0 16 * * *"  # ~18:00 Bucuresti
+    - cron: "0 18 * * *"  # ~20:00 Bucuresti
   workflow_dispatch: {}
 
 jobs:
