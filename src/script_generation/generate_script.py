@@ -12,7 +12,7 @@ from src.config import CONFIG, env
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
-INTRO_TEMPLATE = "Salutare prieteni, astazi discutam despre {titlu}, si sper sa va placa, hai sa incepem!"
+INTRO_TEMPLATE = "Hei, ce faceți? Astăzi descoperim împreună {titlu}, și cred că o să vă placă la nebunie - hai să începem!"
 
 
 EXPRESII_DISPONIBILE = [
