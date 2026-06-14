@@ -71,7 +71,11 @@ tts:
 
 script_generation:
   provider: "gemini"
-  model: "gemini-2.5-flash"
+  # gemini-2.5-flash are o cota gratuita zilnica foarte mica (20 cereri/zi),
+  # insuficienta pentru 4 shorts + 4 episoade de serial pe zi. gemini-2.5-flash-lite
+  # are o cota gratuita zilnica mult mai mare si este suficient de bun pentru
+  # scenarii structurate JSON ca acestea.
+  model: "gemini-2.5-flash-lite"
   max_tokens: 3000
   language: "ro"
 
