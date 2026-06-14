@@ -4,7 +4,10 @@ video:
   width: 1080
   height: 1920
   fps: 30
-  max_duration_seconds: 180
+  # Sub 180s, altfel YouTube il posteaza ca video normal, nu ca Short.
+  # Lasam o marja sub 180 pentru cazurile in care scriptul genereaza
+  # putin mai mult text decat tinta.
+  max_duration_seconds: 150
   output_dir: "output"
 
 character:
