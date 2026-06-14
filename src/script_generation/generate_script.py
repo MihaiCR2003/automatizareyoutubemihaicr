@@ -26,6 +26,29 @@ EXPRESII_DISPONIBILE = [
     "laughing",
 ]
 
+# Forme vechi/gresite ale diacriticelor (cu sedila, U+015E/U+015F/U+0162/U+0163)
+# -> forme corecte romanesti (cu virgula, U+0218/U+0219/U+021A/U+021B).
+_CEDILLA_TO_COMMA = str.maketrans(
+    {
+        "Ş": "Ș",  # Ş -> Ș
+        "ş": "ș",  # ş -> ș
+        "Ţ": "Ț",  # Ţ -> Ț
+        "ţ": "ț",  # ţ -> ț
+    }
+)
+
+
+def normalize_diacritics(text: str) -> str:
+    """Converteste diacriticele cu sedila (ş, ţ) in formele corecte romanesti (ș, ț).
+
+    Edge TTS pronunta diferit cele doua forme, vizual identice dar cu coduri Unicode
+    diferite; aceasta normalizare asigura pronuntia corecta indiferent de varianta
+    folosita de model.
+    """
+    if not isinstance(text, str):
+        return text
+    return text.translate(_CEDILLA_TO_COMMA)
+
 
 def _build_prompt(topic: str, context: str = "") -> str:
     context_block = ""
@@ -80,21 +103,37 @@ def _build_candidates_prompt(candidates: list[dict]) -> str:
 def _pronunciation_and_diction_instructions(tone_description: str) -> str:
     """Reguli comune de limba/pronuntie/punctuatie, reutilizate de toate tipurile de scenarii."""
     return (
-        "\n\nCERINTE DE LIMBA (FOARTE IMPORTANT): Scrie in limba romana literara, corecta "
-        "gramatical, cu toate diacriticele corecte si consistente: ă, â, î, ș, ț "
-        "(NU folosi s/t simple in locul lui ș/ț si NU folosi diacritice gresite gen ş/ţ cu virgula). "
-        f"Foloseste {tone_description} Verifica acuratetea informatiilor folosind contextul "
+        "\n\nCERINTE DE LIMBA (FOARTE IMPORTANT, esential pentru pronuntie corecta): Scrie "
+        "in limba romana literara, corecta gramatical, folosind OBLIGATORIU toate diacriticele "
+        "corecte ale alfabetului romanesc, pentru fiecare cuvant care le contine: "
+        "Ă Â Î Ș Ț (majuscule) si ă â î ș ț (minuscule). "
+        "Vocea text-to-speech pronunta GRESIT cuvintele scrise fara diacritice sau cu "
+        "diacritice incorecte (ex: \"sa\" vs \"să\", \"si\" vs \"și\", \"asta\" vs \"asta\" cu "
+        "â/î la nevoie, \"tara\" vs \"țara\", \"fata\" vs \"față\"), deci NU este o chestiune "
+        "doar de ortografie - lipsa diacriticelor schimba sensul si pronuntia complet. "
+        "Foloseste STRICT formele corecte ș/ț (cu virgula dedesubt), NU s/t simple si NU "
+        "formele vechi/gresite ş/ţ (cu sedila). Recitește mental fiecare propozitie inainte "
+        "de a o scrie si asigura-te ca niciun cuvant care necesita ă, â, î, ș sau ț nu este "
+        "scris fara el."
+        f" Foloseste {tone_description} Verifica acuratetea informatiilor folosind contextul "
         "oferit, fara a inventa detalii false."
-        "\n\nPUNCTUATIE SI PAUZE PENTRU O VOCE NATURALA (FOARTE IMPORTANT, text-to-speech): "
-        "vocea face pauze EXACT pe baza semnelor de punctuatie, deci punctuatia este modul "
-        "tau de a controla ritmul naratiunii. Fiecare propozitie TREBUIE sa se termine cu "
-        "semnul corect (punct, semn de intrebare sau semn de exclamare), pentru o pauza clara "
-        "intre idei. Foloseste virgule pentru pauze scurte naturale in interiorul propozitiilor, "
+        "\n\nPUNCTUATIE, PAUZE SI INTONATIE PENTRU O VOCE NATURALA (FOARTE IMPORTANT, "
+        "text-to-speech): vocea face pauze si schimba intonatia EXACT pe baza semnelor de "
+        "punctuatie, deci punctuatia este modul tau de a regiza naratorul - unde se opreste, "
+        "unde face pauza, unde intreaba, unde exclama. Fiecare propozitie TREBUIE sa se "
+        "termine cu semnul corect: "
+        "punct (.) pentru afirmatii, cu o pauza scurta normala dupa; "
+        "semn de intrebare (?) cand naratorul intreaba sau ridica o nedumerire, cu o "
+        "intonatie ascendenta; "
+        "semn de exclamare (!) pentru tensiune, surpriza, ordine sau emotie puternica, cu "
+        "intonatie energica. "
+        "Foloseste virgule pentru pauze scurte naturale in interiorul propozitiilor, "
         "si linii de pauza (-) sau puncte de suspensie (...) doar atunci cand vrei o pauza mai "
-        "lunga, dramatica, inainte de o revelatie. NU rupe o propozitie in doua fara semn de "
-        "punctuatie intre ele si NU lasa text fara niciun semn de punctuatie la final - fiecare "
-        "fragment de text trimis spre sintetizare TREBUIE sa fie o propozitie/fraza completa, "
-        "incheiata corect, altfel vocea se opreste brusc in mijlocul ideii si suna nenatural. "
+        "lunga, dramatica, inainte de o revelatie sau un cliffhanger. NU rupe o propozitie in "
+        "doua fara semn de punctuatie intre ele si NU lasa text fara niciun semn de "
+        "punctuatie la final - fiecare fragment de text trimis spre sintetizare TREBUIE sa "
+        "fie o propozitie/fraza completa, incheiata corect, altfel vocea se opreste brusc in "
+        "mijlocul ideii si suna nenatural. "
         "Foloseste des semne de exclamare (!) pentru a transmite entuziasm si energie si "
         "semne de intrebare (?) pentru a crea curiozitate si a implica privitorul. "
         "Scrie propozitii cu lungime variata (alterneaza propozitii scurte, ritmate, cu "
@@ -257,7 +296,7 @@ def generate_script_from_candidates(candidates: list[dict]) -> dict:
 
 def _prepend_intro(script: dict) -> dict:
     """Adauga un intro fix, presetat, la inceputul voice-over-ului si segmentelor."""
-    intro_text = INTRO_TEMPLATE.format(titlu=script["titlu"])
+    intro_text = normalize_diacritics(INTRO_TEMPLATE.format(titlu=script["titlu"]))
 
     script["voice_over"] = f"{intro_text} {script['voice_over']}"
     script["segments"] = [
@@ -279,7 +318,7 @@ def _parse_script_response(text: str, fallback_topic: str) -> dict:
                 parsed["segments"] = [
                     {"text": parsed.get("voice_over", ""), "expresie": "neutral"}
                 ]
-            return parsed
+            return _normalize_script_diacritics(parsed)
         except json.JSONDecodeError as exc:
             print(f"Nu am putut parsa JSON-ul de la Gemini ({exc}). Raspuns brut:\n{text}")
 
@@ -287,10 +326,23 @@ def _parse_script_response(text: str, fallback_topic: str) -> dict:
         "titlu": fallback_topic,
         "descriere": f"Un video despre {fallback_topic}.",
         "tags": [fallback_topic],
-        "voice_over": text.strip(),
-        "segments": [{"text": text.strip(), "expresie": "neutral"}],
+        "voice_over": normalize_diacritics(text.strip()),
+        "segments": [{"text": normalize_diacritics(text.strip()), "expresie": "neutral"}],
         "subiect_ales": fallback_topic,
     }
+
+
+def _normalize_script_diacritics(script: dict) -> dict:
+    """Aplica `normalize_diacritics` pe toate campurile text ale scriptului."""
+    for key in ("titlu", "descriere", "voice_over"):
+        if key in script:
+            script[key] = normalize_diacritics(script[key])
+
+    for seg in script.get("segments") or []:
+        if isinstance(seg, dict) and "text" in seg:
+            seg["text"] = normalize_diacritics(seg["text"])
+
+    return script
 
 
 if __name__ == "__main__":

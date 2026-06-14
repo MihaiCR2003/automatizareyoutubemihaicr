@@ -15,6 +15,7 @@ from src.script_generation.generate_script import (
     EXPRESII_DISPONIBILE,
     _call_gemini,
     _pronunciation_and_diction_instructions,
+    normalize_diacritics,
 )
 
 _TONE_DESCRIPTION = (
@@ -162,7 +163,7 @@ def generate_episode(state: dict | None) -> dict:
     generated_text = _call_gemini(prompt, max_tokens)
     script = _extract_json(generated_text)
 
-    script["voice_over"] = _as_text(script.get("voice_over", ""))
+    script["voice_over"] = normalize_diacritics(_as_text(script.get("voice_over", "")))
     script["segments"] = _normalize_segments(script.get("segments"))
 
     if not script["segments"]:
@@ -172,6 +173,10 @@ def generate_episode(state: dict | None) -> dict:
     script.setdefault("descriere", "")
     script.setdefault("tags", [])
     script.setdefault("memorie", (state or {}).get("memorie", ""))
+
+    for key in ("titlu_serial", "titlu_episod", "descriere", "memorie"):
+        if key in script:
+            script[key] = normalize_diacritics(_as_text(script[key]))
 
     script["episode_number"] = episode_number
     return script
@@ -194,10 +199,10 @@ def _normalize_segments(segments) -> list[dict]:
     normalized = []
     for seg in segments:
         if isinstance(seg, dict):
-            text = _as_text(seg.get("text", "")).strip()
+            text = normalize_diacritics(_as_text(seg.get("text", "")).strip())
             expresie = seg.get("expresie") if seg.get("expresie") in EXPRESII_DISPONIBILE else "neutral"
         else:
-            text = _as_text(seg).strip()
+            text = normalize_diacritics(_as_text(seg).strip())
             expresie = "neutral"
 
         if text:
