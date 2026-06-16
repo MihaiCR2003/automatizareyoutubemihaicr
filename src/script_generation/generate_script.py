@@ -1,13 +1,15 @@
-"""Genereaza scriptul pentru un YouTube Short folosind Anthropic Claude API."""
+"""Genereaza scriptul pentru un YouTube Short folosind Google Gemini API."""
 
 from __future__ import annotations
 
 import json
 import time
 
-import anthropic
+import requests
 
 from src.config import CONFIG, env
+
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
 EXPRESII_DISPONIBILE = [
@@ -224,46 +226,50 @@ def _script_instructions() -> str:
     )
 
 
-def _call_claude(prompt: str, max_tokens: int) -> str:
-    """Apeleaza Claude cu `prompt` si returneaza textul generat, cu retry pe erori temporare."""
+def _call_gemini(prompt: str, max_tokens: int) -> str:
+    """Apeleaza Gemini cu `prompt` si returneaza textul generat, cu retry pe erori temporare."""
     model = CONFIG["script_generation"]["model"]
-    api_key = env("ANTHROPIC_API_KEY")
+    api_key = env("GEMINI_API_KEY")
 
     if not api_key:
         raise RuntimeError(
-            "ANTHROPIC_API_KEY nu este setat (variabila de mediu este goala sau lipseste)."
+            "GEMINI_API_KEY nu este setat (variabila de mediu este goala sau lipseste)."
         )
 
-    client = anthropic.Anthropic(api_key=api_key)
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.8,
+            "maxOutputTokens": max_tokens,
+            "thinkingConfig": {"thinkingBudget": 0},
+        },
+    }
 
     max_retries = 3
     for attempt in range(1, max_retries + 1):
-        try:
-            response = client.messages.create(
-                model=model,
-                max_tokens=max_tokens,
-                temperature=0.8,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            return response.content[0].text
-        except anthropic.RateLimitError as exc:
-            print(f"Claude API rate limit (attempt {attempt}/{max_retries}): {exc}")
-            if attempt < max_retries:
-                time.sleep(10 * attempt)
-                continue
-            raise
-        except anthropic.APIStatusError as exc:
-            print(f"Claude API error {exc.status_code}: {exc.message}")
-            if exc.status_code in (529,) and attempt < max_retries:
-                time.sleep(10 * attempt)
-                continue
-            raise
+        response = requests.post(
+            GEMINI_API_URL.format(model=model),
+            params={"key": api_key},
+            json=payload,
+            timeout=120,
+        )
+        if response.ok:
+            break
+
+        print(f"Gemini API error {response.status_code}: {response.text}")
+        if response.status_code in (429, 503) and attempt < max_retries:
+            time.sleep(10 * attempt)
+            continue
+        response.raise_for_status()
+
+    result = response.json()
+    return result["candidates"][0]["content"]["parts"][0]["text"]
 
 
 def generate_script(topic: str, context: str = "") -> dict:
     """Genereaza un dict cu titlu, descriere, tags si voice_over pentru un subiect dat."""
     max_tokens = CONFIG["script_generation"]["max_tokens"]
-    generated_text = _call_claude(_build_prompt(topic, context), max_tokens)
+    generated_text = _call_gemini(_build_prompt(topic, context), max_tokens)
 
     return _parse_script_response(generated_text, fallback_topic=topic)
 
@@ -277,7 +283,7 @@ def generate_script_from_candidates(candidates: list[dict]) -> dict:
     max_tokens = CONFIG["script_generation"]["max_tokens"]
     fallback_topic = candidates[0]["topic"] if candidates else "Curiozitati interesante"
 
-    generated_text = _call_claude(_build_candidates_prompt(candidates), max_tokens)
+    generated_text = _call_gemini(_build_candidates_prompt(candidates), max_tokens)
 
     script = _parse_script_response(generated_text, fallback_topic=fallback_topic)
     script.setdefault("subiect_ales", fallback_topic)
@@ -298,7 +304,7 @@ def _parse_script_response(text: str, fallback_topic: str) -> dict:
                 ]
             return _normalize_script_diacritics(parsed)
         except json.JSONDecodeError as exc:
-            print(f"Nu am putut parsa JSON-ul de la Claude ({exc}). Raspuns brut:\n{text}")
+            print(f"Nu am putut parsa JSON-ul de la Gemini ({exc}). Raspuns brut:\n{text}")
 
     return {
         "titlu": fallback_topic,
