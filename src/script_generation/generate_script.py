@@ -47,6 +47,13 @@ def normalize_diacritics(text: str) -> str:
     return text.translate(_CEDILLA_TO_COMMA)
 
 
+def _niche_description() -> str:
+    return CONFIG.get("content_strategy", {}).get(
+        "niche",
+        "fotbal si sport, istorie si civilizatii antice, secrete si mistere, curiozitati fascinante, stiinta si tehnologie",
+    )
+
+
 def _build_prompt(topic: str, context: str = "") -> str:
     context_block = ""
     if context:
@@ -55,10 +62,11 @@ def _build_prompt(topic: str, context: str = "") -> str:
             f"\"{context}\"\n"
         )
 
+    niche = _niche_description()
     intro = (
-        "Esti un scenarist profesionist pentru YouTube Shorts in limba romana, specializat in "
-        "continut de stiri/curiozitati captivant, bine documentat si tinut lipit de ecran. "
-        f"Scrie un scenariu despre subiectul: \"{topic}\"."
+        f"Esti un scenarist profesionist pentru YouTube Shorts in limba romana, specializat in "
+        f"continut viral despre: {niche}. "
+        f"Scrie un scenariu captivant, bine documentat si tinut lipit de ecran despre subiectul: \"{topic}\"."
         f"{context_block}"
     )
 
@@ -73,19 +81,22 @@ def _build_candidates_prompt(candidates: list[dict]) -> str:
         for i, c in enumerate(candidates)
     )
 
+    niche = _niche_description()
     intro = (
-        "Esti un scenarist profesionist pentru YouTube Shorts in limba romana, care administreaza "
-        "un canal de stiri/curiozitati cu scopul de a creste cat mai mult numarul de abonati "
-        "si vizualizari."
+        f"Esti un scenarist profesionist pentru YouTube Shorts in limba romana, care administreaza "
+        f"un canal specializat in: {niche}. "
+        f"Scopul este sa cresti numarul de abonati si vizualizari prin continut viral si captivant."
         "\n\nIata o lista de subiecte trending in Romania chiar acum:\n"
         f"{candidates_text}\n\n"
-        "Alege subiectul cu cel mai mare potential de viralizare pentru un public larg "
-        "(curiozitati, mister, stiinta, tehnologie, istorie, fapte socante, evenimente importante). "
-        "Evita subiectele inguste de tip barfe locale TV/sport, transferuri de fotbalisti necunoscuti "
-        "sau dispute personale intre persoane publice putin relevante, DOAR DACA nu exista "
-        "o alternativa mai buna in lista - in acest caz, gaseste un unghi cat mai larg si interesant "
-        "pentru subiectul ales."
-        "\n\nIncepe raspunsul JSON cu cheia \"subiect_ales\" (subiectul exact ales din lista de mai sus), "
+        f"Alege subiectul cu cel mai mare potential de viralizare pentru nisa canalului ({niche}). "
+        "Prioritizeaza in aceasta ordine: (1) fotbal/sport cu unghi interesant sau socant, "
+        "(2) povesti istorice fascinante sau misterioase, (3) secrete si mistere, "
+        "(4) curiozitati stiintifice sau fapte socante, (5) tehnologie si inteligenta artificiala. "
+        "EVITA complet: vreme/meteo, stiri locale fara impact national, barfe TV, "
+        "dispute personale minore, transferuri de jucatori necunoscuti. "
+        "Daca niciun subiect din lista nu se potriveste bine nisei, alege cel mai aproape "
+        "si gaseste un unghi creativ care sa il incadreze in nisa canalului."
+        "\n\nIncepe raspunsul JSON cu cheia \"subiect_ales\" (subiectul exact ales din lista), "
         "apoi scrie scenariul pentru acel subiect."
     )
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 import xml.etree.ElementTree as ET
 
 import requests
@@ -11,16 +12,50 @@ from src.config import CONFIG, env
 RSS_URL = "https://trends.google.com/trending/rss"
 YOUTUBE_VIDEOS_URL = "https://www.googleapis.com/youtube/v3/videos"
 
-FALLBACK_TOPICS = [
-    "Curiozitati despre spatiu",
-    "Fapte interesante din istorie",
-    "Trucuri de productivitate",
-    "Mituri si adevaruri din stiinta",
-    "Locuri uimitoare din Romania",
-]
-
-
 NEWS_ITEM_NS = "https://trends.google.com/trending/rss"
+
+
+def _get_niche_fallback_topics(count: int) -> list[dict]:
+    """Returneaza subiecte de rezerva din nisa canalului, rotind aleator prin categorii."""
+    fallback_by_category = CONFIG.get("content_strategy", {}).get("fallback_topics", {})
+
+    if not fallback_by_category:
+        return [
+            {"topic": "Secretele istoriei antice pe care nimeni nu ti le spune", "context": ""},
+            {"topic": "Cele mai incredibile fapte despre fotbal", "context": ""},
+            {"topic": "Fenomene inexplicabile filmate pe camera", "context": ""},
+            {"topic": "Fapte uimitoare despre corpul uman", "context": ""},
+            {"topic": "Descoperiri stiintifice care schimba tot ce stiam", "context": ""},
+        ][:count]
+
+    categories = list(fallback_by_category.keys())
+    random.shuffle(categories)
+
+    result = []
+    while len(result) < count:
+        for cat in categories:
+            topics_in_cat = fallback_by_category[cat]
+            topic = random.choice(topics_in_cat)
+            result.append({"topic": topic, "context": cat})
+            if len(result) >= count:
+                break
+
+    return result
+
+
+def _filter_excluded(topics: list[dict]) -> list[dict]:
+    """Elimina subiectele care contin cuvinte cheie excluse (ex: vreme, meteo)."""
+    excluded = [
+        kw.lower()
+        for kw in CONFIG.get("content_strategy", {}).get("excluded_keywords", [])
+    ]
+    if not excluded:
+        return topics
+
+    return [
+        item for item in topics
+        if not any(kw in item["topic"].lower() for kw in excluded)
+    ]
 
 
 def get_trending_topics() -> list[str]:
@@ -106,35 +141,37 @@ def _get_youtube_trending(count: int) -> list[dict]:
 
 
 def get_trending_topics_with_context() -> list[dict]:
-    """Returneaza subiecte cautate/vizionate de oameni acum, impreuna cu context.
+    """Returneaza subiecte cautate/vizionate de oameni acum, filtrate dupa nisa canalului.
 
-    Sursa primara: YouTube Data API (ce vede lumea pe platforma chiar acum).
-    Fallback: Google Trends RSS (subiecte cautate pe Google, gratuit, fara API key).
-    Daca ambele surse sunt indisponibile, cade pe o lista de subiecte generice.
-
-    Fiecare element are cheile: topic, context.
+    Sursa primara: YouTube Data API. Fallback: Google Trends RSS.
+    Subiectele excluse (vreme, meteo etc.) sunt filtrate automat.
+    Daca dupa filtrare nu raman suficiente subiecte, completeaza cu subiecte
+    din nisa canalului (fotbal, istorie, secrete, curiozitati, stiinta, tehnologie).
     """
     count = CONFIG["trending"]["topics_count"]
 
     youtube_results = _get_youtube_trending(count)
     if youtube_results:
-        results = youtube_results + _get_google_trends(count)
+        raw = youtube_results + _get_google_trends(count)
     else:
-        results = _get_google_trends(count)
+        raw = _get_google_trends(count)
+
+    filtered = _filter_excluded(raw)
 
     seen = set()
     deduped = []
-    for item in results:
+    for item in filtered:
         key = item["topic"].strip().lower()
         if key in seen:
             continue
         seen.add(key)
         deduped.append(item)
 
-    if deduped:
-        return deduped
+    if len(deduped) >= count:
+        return deduped[:count * 2]
 
-    return [{"topic": topic, "context": ""} for topic in FALLBACK_TOPICS[:count]]
+    niche_extras = _get_niche_fallback_topics(count - len(deduped))
+    return deduped + niche_extras
 
 
 if __name__ == "__main__":

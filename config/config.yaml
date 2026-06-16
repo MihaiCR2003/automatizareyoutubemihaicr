@@ -84,6 +84,78 @@ trending:
   geo: "RO"
   topics_count: 8
 
+# Strategia de continut: nisa canalului, filtre si subiecte de rezerva.
+content_strategy:
+  # Descrierea nisei folosita in promptul AI pentru selectia si scrierea subiectelor.
+  niche: "fotbal si sport, istorie si civilizatii antice, secrete si mistere, curiozitati fascinante, stiinta si tehnologie"
+
+  # Cuvinte cheie din titlul subiectului care duc la excluderea lui automata.
+  excluded_keywords:
+    - vreme
+    - meteo
+    - prognoza
+    - temperaturi
+    - precipitatii
+    - ploaie
+    - ninsoare
+    - grindina
+    - cod galben
+    - cod portocaliu
+    - cod rosu
+    - furtuna
+    - viscol
+    - inghet
+    - canicular
+    - canicula
+
+  # Subiecte de rezerva pe categorii, folosite cand trending-ul nu are subiecte
+  # potrivite nisei. Sistemul roteste aleator prin aceste categorii.
+  fallback_topics:
+    fotbal:
+      - "Cel mai scump transfer din istoria fotbalului mondial"
+      - "Secretele din vestiarul marilor echipe de fotbal"
+      - "Fapte incredibile despre Cristiano Ronaldo pe care nu le stiai"
+      - "Cele mai mari rasturnari de scor din istoria fotbalului"
+      - "Cum arata o zi din viata unui fotbalist de top"
+      - "Cele mai mari scandaluri din istoria fotbalului"
+      - "Fotbalisti care au renuntat la milioane si au ales alt drum"
+    istorie:
+      - "Secretele Egiptului Antic pe care nimeni nu ti le dezvaluie"
+      - "Civilizatii misterioase disparute fara urma de pe fata Pamantului"
+      - "Fapte socante despre al Doilea Razboi Mondial necunoscute publicului"
+      - "Imperiul Roman: secrete pe care cartile de scoala nu le spun"
+      - "Cele mai mari misteruri ale istoriei antice inca nerezolvate"
+      - "Vikingii: adevarul socant despre acesti razboinici"
+      - "Orasele antice ingropate descoperite recent de arheologi"
+    secrete:
+      - "Locuri de pe Pamant unde accesul public este complet interzis"
+      - "Teorii ale conspiratiei confirmate oficial de guverne"
+      - "Fenomene inexplicabile filmate pe camera in direct"
+      - "Locuri pe Google Maps sterse intentionat si motivul real"
+      - "Ce se ascunde cu adevarat in Zona 51"
+      - "Organizatii secrete care au influentat istoria lumii"
+      - "Experimente secrete ale guvernelor asupra propriilor cetateni"
+    curiozitati:
+      - "Fapte uimitoare despre corpul uman pe care nu le stiai"
+      - "Animale cu superputeri reale demonstrate de stiinta"
+      - "Locuri incredibile de pe Pamant care par dintr-un film SF"
+      - "Recorduri mondiale imposibil de batut vreodata"
+      - "Iluzii optice care iti pacalesc creierul, explicate de stiinta"
+      - "Obiceiuri ciudate din tari pe care nu le-ai crede reale"
+      - "Fapte despre oceane care iti vor face pielea de gaina"
+    stiinta:
+      - "Descoperiri stiintifice recente care au schimbat tot ce stiam"
+      - "Universul are limite? Ce se afla dincolo de el"
+      - "Experimente stiintifice interzise care au schimbat istoria"
+      - "Fizica cuantica explicata simplu: lucruri imposibile care se intampla"
+      - "Plante carnivore si organisme care sfideaza logica naturii"
+    tehnologie:
+      - "Inteligenta artificiala poate citi gandurile oamenilor acum"
+      - "Cum ne supravegheaza telefoanele fara sa stim"
+      - "Gadgeturi din viitor disponibile deja acum"
+      - "Robotii care inlocuiesc deja oamenii in aceste meserii"
+      - "Internetul viitorului: cum va arata in 2030"
+
 scheduling:
   daily_run_time: "18:00"
   timezone: "Europe/Bucharest"
