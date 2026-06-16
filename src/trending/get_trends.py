@@ -108,17 +108,19 @@ def _get_youtube_trending(count: int) -> list[dict]:
 def get_trending_topics_with_context() -> list[dict]:
     """Returneaza subiecte cautate/vizionate de oameni acum, impreuna cu context.
 
-    Combina doua surse: subiecte cautate pe Google (Google Trends RSS) si
-    videoclipuri populare chiar acum pe YouTube (YouTube Data API, daca este
-    configurata YOUTUBE_API_KEY) - astfel sunt favorizate subiectele cu sansa
-    cea mai mare de vizualizari/abonati pe YouTube.
+    Sursa primara: YouTube Data API (ce vede lumea pe platforma chiar acum).
+    Fallback: Google Trends RSS (subiecte cautate pe Google, gratuit, fara API key).
+    Daca ambele surse sunt indisponibile, cade pe o lista de subiecte generice.
 
-    Fiecare element are cheile: topic, context. Daca ambele surse sunt
-    indisponibile, cade pe o lista de subiecte generice fara context.
+    Fiecare element are cheile: topic, context.
     """
     count = CONFIG["trending"]["topics_count"]
 
-    results = _get_google_trends(count) + _get_youtube_trending(count)
+    youtube_results = _get_youtube_trending(count)
+    if youtube_results:
+        results = youtube_results + _get_google_trends(count)
+    else:
+        results = _get_google_trends(count)
 
     seen = set()
     deduped = []
