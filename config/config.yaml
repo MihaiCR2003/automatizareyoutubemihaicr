@@ -55,106 +55,105 @@ audio:
 
 tts:
   provider: "edge_tts"
-  language: "ro"
-  voice: "ro-RO-EmilNeural"
-  # O singura voce (masculina, groasa - vikingul nostru) pentru tot textul,
-  # romana si engleza deopotriva. Cuvintele/numele straine sunt scrise fonetic
-  # in scenariu (vezi instructiunile de pronuntie), nu schimbate de voce.
+  language: "en"
+  voice: "en-US-GuyNeural"
+  # Single energetic male English voice for all narration.
   voices:
-    - "ro-RO-EmilNeural"
+    - "en-US-GuyNeural"
   rate: "+0%"
   pitch: "-5Hz"
-  # Variatie aleatoare per segment, pentru o voce mai naturala/umana
-  # (nu identica monoton de la un segment la altul).
+  # Per-segment random variation for a more natural, human-sounding voice.
   rate_jitter: 3
   pitch_jitter: 4
 
 script_generation:
   provider: "gemini"
-  # gemini-2.5-flash-lite are o cota gratuita zilnica mare, suficient
-  # pentru 4 shorts + 4 episoade de serial pe zi.
+  # gemini-2.5-flash-lite has a large free daily quota, sufficient
+  # for 4 shorts + 4 series episodes per day.
   model: "gemini-2.5-flash-lite"
   max_tokens: 3000
-  language: "ro"
+  language: "en"
 
 trending:
-  # "youtube" foloseste YouTube Data API (ce vede lumea pe platforma chiar acum)
-  # ca sursa primara, cu Google Trends RSS ca fallback gratuit.
+  # "youtube" uses YouTube Data API (what people watch right now on the platform)
+  # as primary source, with Google Trends RSS as free fallback.
   provider: "youtube"
-  geo: "RO"
+  geo: "US"
   topics_count: 8
 
 # Strategia de continut: nisa canalului, filtre si subiecte de rezerva.
 content_strategy:
-  # Descrierea nisei folosita in promptul AI pentru selectia si scrierea subiectelor.
-  niche: "fotbal si sport, istorie si civilizatii antice, secrete si mistere, curiozitati fascinante, stiinta si tehnologie"
+  # Niche description used in the AI prompt for topic selection and script writing.
+  niche: "football and sports, ancient history and civilizations, secrets and mysteries, mind-blowing facts, science and technology"
 
-  # Cuvinte cheie din titlul subiectului care duc la excluderea lui automata.
+  # Keywords in the topic title that trigger automatic exclusion.
   excluded_keywords:
-    - vreme
-    - meteo
-    - prognoza
-    - temperaturi
-    - precipitatii
-    - ploaie
-    - ninsoare
-    - grindina
-    - cod galben
-    - cod portocaliu
-    - cod rosu
-    - furtuna
-    - viscol
-    - inghet
-    - canicular
-    - canicula
+    - weather
+    - forecast
+    - temperature
+    - rainfall
+    - snowfall
+    - hurricane
+    - tornado
+    - heatwave
+    - blizzard
+    - flood warning
+    - stock market
+    - earnings report
 
-  # Subiecte de rezerva pe categorii, folosite cand trending-ul nu are subiecte
-  # potrivite nisei. Sistemul roteste aleator prin aceste categorii.
+  # Fallback topics by category, used when trending has no suitable niche subjects.
+  # The system randomly rotates through these categories.
   fallback_topics:
-    fotbal:
-      - "Cel mai scump transfer din istoria fotbalului mondial"
-      - "Secretele din vestiarul marilor echipe de fotbal"
-      - "Fapte incredibile despre Cristiano Ronaldo pe care nu le stiai"
-      - "Cele mai mari rasturnari de scor din istoria fotbalului"
-      - "Cum arata o zi din viata unui fotbalist de top"
-      - "Cele mai mari scandaluri din istoria fotbalului"
-      - "Fotbalisti care au renuntat la milioane si au ales alt drum"
-    istorie:
-      - "Secretele Egiptului Antic pe care nimeni nu ti le dezvaluie"
-      - "Civilizatii misterioase disparute fara urma de pe fata Pamantului"
-      - "Fapte socante despre al Doilea Razboi Mondial necunoscute publicului"
-      - "Imperiul Roman: secrete pe care cartile de scoala nu le spun"
-      - "Cele mai mari misteruri ale istoriei antice inca nerezolvate"
-      - "Vikingii: adevarul socant despre acesti razboinici"
-      - "Orasele antice ingropate descoperite recent de arheologi"
-    secrete:
-      - "Locuri de pe Pamant unde accesul public este complet interzis"
-      - "Teorii ale conspiratiei confirmate oficial de guverne"
-      - "Fenomene inexplicabile filmate pe camera in direct"
-      - "Locuri pe Google Maps sterse intentionat si motivul real"
-      - "Ce se ascunde cu adevarat in Zona 51"
-      - "Organizatii secrete care au influentat istoria lumii"
-      - "Experimente secrete ale guvernelor asupra propriilor cetateni"
-    curiozitati:
-      - "Fapte uimitoare despre corpul uman pe care nu le stiai"
-      - "Animale cu superputeri reale demonstrate de stiinta"
-      - "Locuri incredibile de pe Pamant care par dintr-un film SF"
-      - "Recorduri mondiale imposibil de batut vreodata"
-      - "Iluzii optice care iti pacalesc creierul, explicate de stiinta"
-      - "Obiceiuri ciudate din tari pe care nu le-ai crede reale"
-      - "Fapte despre oceane care iti vor face pielea de gaina"
-    stiinta:
-      - "Descoperiri stiintifice recente care au schimbat tot ce stiam"
-      - "Universul are limite? Ce se afla dincolo de el"
-      - "Experimente stiintifice interzise care au schimbat istoria"
-      - "Fizica cuantica explicata simplu: lucruri imposibile care se intampla"
-      - "Plante carnivore si organisme care sfideaza logica naturii"
-    tehnologie:
-      - "Inteligenta artificiala poate citi gandurile oamenilor acum"
-      - "Cum ne supravegheaza telefoanele fara sa stim"
-      - "Gadgeturi din viitor disponibile deja acum"
-      - "Robotii care inlocuiesc deja oamenii in aceste meserii"
-      - "Internetul viitorului: cum va arata in 2030"
+    football:
+      - "The most expensive transfer in football history"
+      - "Secrets from the locker rooms of football's greatest clubs"
+      - "Incredible facts about Cristiano Ronaldo you never knew"
+      - "The biggest score reversals in football history"
+      - "What a day in the life of a top footballer actually looks like"
+      - "The biggest scandals in football history"
+      - "Footballers who walked away from millions and never looked back"
+      - "The dark side of football nobody talks about"
+    history:
+      - "Ancient Egypt secrets no one ever told you"
+      - "Mysterious civilizations that vanished without a trace"
+      - "Shocking facts about World War II the history books left out"
+      - "The Roman Empire: secrets your school never taught you"
+      - "The greatest unsolved mysteries of the ancient world"
+      - "The Vikings: the shocking truth about these warriors"
+      - "Ancient cities recently discovered buried underground"
+      - "The most brutal empires in all of human history"
+    secrets:
+      - "Places on Earth where public access is completely forbidden"
+      - "Conspiracy theories that were officially confirmed by governments"
+      - "Unexplainable phenomena caught on camera live"
+      - "Google Maps locations that were deliberately erased and why"
+      - "What is really hidden inside Area 51"
+      - "Secret organizations that shaped world history"
+      - "Government experiments secretly conducted on their own citizens"
+      - "The most classified documents ever declassified"
+    facts:
+      - "Mind-blowing facts about the human body you never knew"
+      - "Animals with real superpowers proven by science"
+      - "Unbelievable places on Earth that look like they're from a movie"
+      - "World records that can never be broken"
+      - "Optical illusions that break your brain, explained by science"
+      - "Strange customs from countries around the world you wouldn't believe"
+      - "Ocean facts that will give you goosebumps"
+      - "Things that exist on Earth that sound completely made up"
+    science:
+      - "Recent scientific discoveries that changed everything we knew"
+      - "Does the universe have a boundary? What lies beyond it"
+      - "Forbidden scientific experiments that changed history"
+      - "Quantum physics explained simply: impossible things that actually happen"
+      - "Carnivorous plants and organisms that defy the logic of nature"
+      - "Space discoveries in the last year that shocked astronomers"
+    technology:
+      - "Artificial intelligence can now read human thoughts"
+      - "How your phone spies on you without you knowing"
+      - "Future gadgets that already exist today"
+      - "Robots that are already replacing humans in these jobs"
+      - "What the internet will look like in 2030"
+      - "The dark side of social media algorithms nobody tells you"
 
 scheduling:
   daily_run_time: "18:00"
@@ -166,7 +165,7 @@ youtube:
   default_tags:
     - "shorts"
     - "trending"
-    - "romania"
+    - "viral"
 
 telegram:
   notify_on_start: true
