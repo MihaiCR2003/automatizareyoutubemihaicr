@@ -73,7 +73,7 @@ def _build_prompt(topic: str, context: str = "") -> str:
     return intro + _script_instructions()
 
 
-def _build_candidates_prompt(candidates: list[dict]) -> str:
+def _build_candidates_prompt(candidates: list[dict], avoid_topics: list[str] | None = None) -> str:
     """Builds a prompt that selects the best topic from a list of trending candidates."""
     candidates_text = "\n".join(
         f"{i + 1}. \"{c['topic']}\""
@@ -81,22 +81,35 @@ def _build_candidates_prompt(candidates: list[dict]) -> str:
         for i, c in enumerate(candidates)
     )
 
+    avoid_block = ""
+    if avoid_topics:
+        avoid_list = "\n".join(f"- {t}" for t in avoid_topics[:20])
+        avoid_block = (
+            f"\n\nALREADY COVERED (do NOT pick these topics or anything closely related — "
+            f"we already made videos about them recently and repeating kills the channel):\n"
+            f"{avoid_list}\n"
+            f"If a trending topic is the same subject or very similar to one above, SKIP IT "
+            f"and pick a completely different topic instead."
+        )
+
     niche = _niche_description()
     intro = (
         f"You are a professional YouTube Shorts scriptwriter managing an English-language channel "
         f"specialized in: {niche}. "
         f"Your goal is to grow subscribers and views through viral, captivating content."
         "\n\nHere is a list of currently trending topics:\n"
-        f"{candidates_text}\n\n"
-        f"Choose the topic with the highest virality potential for the channel niche ({niche}). "
+        f"{candidates_text}"
+        f"{avoid_block}\n\n"
+        f"Choose the topic with the highest virality potential for the channel niche ({niche}), "
+        f"making sure it is NOT similar to any already-covered topic listed above. "
         "Prioritize in this order: (1) football/sport with a shocking or fascinating angle, "
         "(2) fascinating or mysterious historical stories, (3) secrets and mysteries, "
         "(4) mind-blowing facts or scientific curiosities, (5) technology and artificial intelligence. "
         "COMPLETELY AVOID: weather/forecasts, minor local news, celebrity gossip, "
         "personal disputes, transfers of unknown players. "
-        "If no topic in the list fits the niche well, pick the closest one and find a creative "
-        "angle that frames it within the channel's niche."
-        "\n\nStart the JSON response with the key \"subiect_ales\" (the exact topic chosen from the list), "
+        "If no trending topic fits the niche or they are all already covered, pick the closest "
+        "niche-appropriate topic and find a fresh creative angle."
+        "\n\nStart the JSON response with the key \"subiect_ales\" (the exact topic chosen), "
         "then write the script for that topic."
     )
 
@@ -244,16 +257,17 @@ def generate_script(topic: str, context: str = "") -> dict:
     return _parse_script_response(generated_text, fallback_topic=topic)
 
 
-def generate_script_from_candidates(candidates: list[dict]) -> dict:
+def generate_script_from_candidates(candidates: list[dict], avoid_topics: list[str] | None = None) -> dict:
     """Alege cel mai bun subiect dintr-o lista de candidati trending si genereaza scriptul.
 
     `candidates` este o lista de dict-uri cu cheile: topic, context.
+    `avoid_topics` este o lista de subiecte deja folosite recent (de evitat).
     Returneaza scriptul (cu cheile uzuale) plus cheia "subiect_ales" cu subiectul ales.
     """
     max_tokens = CONFIG["script_generation"]["max_tokens"]
-    fallback_topic = candidates[0]["topic"] if candidates else "Curiozitati interesante"
+    fallback_topic = candidates[0]["topic"] if candidates else "Mind-blowing facts"
 
-    generated_text = _call_gemini(_build_candidates_prompt(candidates), max_tokens)
+    generated_text = _call_gemini(_build_candidates_prompt(candidates, avoid_topics), max_tokens)
 
     script = _parse_script_response(generated_text, fallback_topic=fallback_topic)
     script.setdefault("subiect_ales", fallback_topic)

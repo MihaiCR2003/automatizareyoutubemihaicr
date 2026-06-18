@@ -33,9 +33,10 @@ def run_pipeline(topic: str | None = None) -> str:
     else:
         candidates = get_trending_topics_with_context()
         if not candidates:
-            candidates = [{"topic": "Curiozitati interesante", "context": ""}]
+            candidates = [{"topic": "Mind-blowing facts about the universe", "context": ""}]
 
-        script = generate_script_from_candidates(candidates)
+        recent_topics = db.get_recent_topics(days=7)
+        script = generate_script_from_candidates(candidates, avoid_topics=recent_topics)
         topic = script.get("subiect_ales", candidates[0]["topic"])
 
     voice_path, timed_segments = generate_voice_over_segments(script["segments"], output_dir)

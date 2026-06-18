@@ -91,6 +91,42 @@ def get_run(run_id: str) -> dict[str, Any] | None:
     return _load_local().get(run_id)
 
 
+def get_recent_topics(days: int = 7) -> list[str]:
+    """Returns topics used in the last N days to avoid repetition across runs."""
+    from datetime import datetime, timedelta
+
+    cutoff = datetime.now() - timedelta(days=days)
+
+    if _supabase_configured():
+        try:
+            response = requests.get(
+                _runs_url(),
+                headers=_supabase_headers(),
+                params={"select": "data", "order": "run_id.desc", "limit": "100"},
+                timeout=30,
+            )
+            if not response.ok:
+                return []
+            runs_data = [row.get("data") for row in response.json()]
+        except requests.RequestException:
+            return []
+    else:
+        runs_data = list(_load_local().values())
+
+    recent: list[str] = []
+    for data in runs_data:
+        if not isinstance(data, dict):
+            continue
+        try:
+            run_time = datetime.fromisoformat(data.get("created_at", ""))
+        except (ValueError, TypeError):
+            continue
+        if run_time >= cutoff and data.get("topic"):
+            recent.append(data["topic"])
+
+    return recent
+
+
 def get_pending_runs() -> dict[str, Any]:
     """Returneaza rularile care asteapta aprobare/upload."""
     if _supabase_configured():
